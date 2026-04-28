@@ -7,7 +7,7 @@ function Kitchen() {
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get('https://hotel-rajendra-production.up.railway.app/api/orders/active',
+      const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/orders/active',
         { headers: { authorization: token } }
       )
       setOrders(res.data)
@@ -18,7 +18,7 @@ function Kitchen() {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.post(`https://hotel-rajendra-production.up.railway.app/api/orders/status/${id}`,
+      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/status/${id}`,
         { status },
         { headers: { authorization: token } }
       )
@@ -30,7 +30,7 @@ function Kitchen() {
 
   const markOrderDone = async (id) => {
     try {
-      await axios.post(`https://hotel-rajendra-production.up.railway.app/api/orders/bill/${id}`,
+      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/bill/${id}`,
         {},
         { headers: { authorization: token } }
       )

@@ -8,7 +8,7 @@ function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await axios.post('https://hotel-rajendra-production.up.railway.app/api/auth/login', {
+      const res = await axios.post('https://opt-wireless-clover.ngrok-free.dev/api/auth/login', {
         userId,
         password
       })

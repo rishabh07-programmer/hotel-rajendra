@@ -51,7 +51,7 @@ function Counter() {
 
   const fetchMenu = async () => {
     try {
-      const res = await axios.get('https://hotel-rajendra-production.up.railway.app/api/menu')
+      const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/menu')
       setMenu(res.data)
       if (res.data.length > 0) {
         setSelectedCategory(res.data[0].category)
@@ -65,7 +65,7 @@ function Counter() {
 
   const fetchActiveOrders = async () => {
     try {
-      const res = await axios.get('https://hotel-rajendra-production.up.railway.app/api/orders/active', {
+      const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/orders/active', {
         headers: { authorization: token }
       })
       setActiveOrders(res.data)
@@ -76,7 +76,7 @@ function Counter() {
 
   const fetchWaiters = async () => {
     try {
-      const res = await axios.get('https://hotel-rajendra-production.up.railway.app/api/auth/waiters', {
+      const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/auth/waiters', {
         headers: { authorization: token }
       })
       setWaiters(res.data)
@@ -87,7 +87,7 @@ function Counter() {
 
   const fetchTodaySales = async () => {
     try {
-      const res = await axios.get('https://hotel-rajendra-production.up.railway.app/api/analytics/today', {
+      const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/analytics/today', {
         headers: { authorization: token }
       })
       setTodaySales(res.data)
@@ -98,7 +98,7 @@ function Counter() {
 
   const fetchMonthlySales = async (month, year) => {
     try {
-      const res = await axios.get(`https://hotel-rajendra-production.up.railway.app/api/analytics/monthly/${year}/${month}`, {
+      const res = await axios.get(`https://opt-wireless-clover.ngrok-free.dev/api/analytics/monthly/${year}/${month}`, {
         headers: { authorization: token }
       })
       setMonthSales(res.data)
@@ -109,7 +109,7 @@ function Counter() {
 
   const fetchYearlySales = async (year) => {
     try {
-      const res = await axios.get(`https://hotel-rajendra-production.up.railway.app/api/analytics/yearly/${year}`, {
+      const res = await axios.get(`https://opt-wireless-clover.ngrok-free.dev/api/analytics/yearly/${year}`, {
         headers: { authorization: token }
       })
       setYearSales(res.data)
@@ -120,7 +120,7 @@ function Counter() {
 
   const fetchTopItems = async () => {
     try {
-      const res = await axios.get('https://hotel-rajendra-production.up.railway.app/api/analytics/top-items', {
+      const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/analytics/top-items', {
         headers: { authorization: token }
       })
       setTopItems(res.data)
@@ -131,7 +131,7 @@ function Counter() {
 
   const fetchMonthlyTopItems = async (month, year) => {
     try {
-      const res = await axios.get(`https://hotel-rajendra-production.up.railway.app/api/analytics/top-items?month=${month}&year=${year}`, {
+      const res = await axios.get(`https://opt-wireless-clover.ngrok-free.dev/api/analytics/top-items?month=${month}&year=${year}`, {
         headers: { authorization: token }
       })
       setTopItems(res.data)
@@ -142,7 +142,7 @@ function Counter() {
 
   const fetchYearlyTopItems = async (year) => {
     try {
-      const res = await axios.get(`https://hotel-rajendra-production.up.railway.app/api/analytics/top-items?year=${year}`, {
+      const res = await axios.get(`https://opt-wireless-clover.ngrok-free.dev/api/analytics/top-items?year=${year}`, {
         headers: { authorization: token }
       })
       setTopItems(res.data)
@@ -219,15 +219,15 @@ function Counter() {
   const sendToKitchen = async () => {
     try {
       if (selectedOrder._id) {
-        await axios.post(`https://hotel-rajendra-production.up.railway.app/api/orders/addItems/${selectedOrder._id}`,
+        await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/addItems/${selectedOrder._id}`,
           { items: selectedOrder.items },
           { headers: { authorization: token } }
         )
-        const res = await axios.get('https://hotel-rajendra-production.up.railway.app/api/orders/active', { headers: { authorization: token } })
+        const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/orders/active', { headers: { authorization: token } })
         const refreshed = res.data.find(o => o._id === selectedOrder._id)
         if (refreshed) setSelectedOrder(refreshed)
       } else {
-        const res = await axios.post('https://hotel-rajendra-production.up.railway.app/api/orders/new',
+        const res = await axios.post('https://opt-wireless-clover.ngrok-free.dev/api/orders/new',
           { tableNumber: selectedOrder.tableNumber, items: selectedOrder.items },
           { headers: { authorization: token } }
         )
@@ -242,17 +242,17 @@ function Counter() {
   const saveAndBill = async () => {
     try {
       if (selectedOrder._id) {
-        await axios.post(`https://hotel-rajendra-production.up.railway.app/api/orders/addItems/${selectedOrder._id}`,
+        await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/addItems/${selectedOrder._id}`,
           { items: selectedOrder.items },
           { headers: { authorization: token } }
         )
-        await axios.post(`https://hotel-rajendra-production.up.railway.app/api/orders/bill/${selectedOrder._id}`, {}, { headers: { authorization: token } })
+        await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/bill/${selectedOrder._id}`, {}, { headers: { authorization: token } })
       } else {
-        const res = await axios.post('https://hotel-rajendra-production.up.railway.app/api/orders/new',
+        const res = await axios.post('https://opt-wireless-clover.ngrok-free.dev/api/orders/new',
           { tableNumber: selectedOrder.tableNumber, items: selectedOrder.items },
           { headers: { authorization: token } }
         )
-        await axios.post(`https://hotel-rajendra-production.up.railway.app/api/orders/bill/${res.data.order._id}`, {}, { headers: { authorization: token } })
+        await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/bill/${res.data.order._id}`, {}, { headers: { authorization: token } })
       }
       printBill()
       setSelectedOrder(null)
@@ -265,7 +265,7 @@ function Counter() {
   const cancelOrder = async () => {
     if (!selectedOrder._id) { setSelectedOrder(null); return }
     try {
-      await axios.post(`https://hotel-rajendra-production.up.railway.app/api/orders/cancel/${selectedOrder._id}`, {}, { headers: { authorization: token } })
+      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/cancel/${selectedOrder._id}`, {}, { headers: { authorization: token } })
       setSelectedOrder(null)
       setDiscount(0)
       fetchActiveOrders()
@@ -293,7 +293,7 @@ function Counter() {
 
   const saveItemPrice = async (item) => {
     try {
-      await axios.post(`https://hotel-rajendra-production.up.railway.app/api/menu/update/${item._id}`,
+      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/menu/update/${item._id}`,
         { price: parseInt(editPrice), variable: editVariable },
         { headers: { authorization: token } }
       )
@@ -306,7 +306,7 @@ function Counter() {
   const deleteItem = async (item) => {
     if (!window.confirm(`Delete ${item.name}?`)) return
     try {
-      await axios.post(`https://hotel-rajendra-production.up.railway.app/api/menu/delete/${item._id}`, {}, { headers: { authorization: token } })
+      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/menu/delete/${item._id}`, {}, { headers: { authorization: token } })
       fetchMenu()
     } catch (err) { alert('Failed to delete item') }
   }
@@ -314,7 +314,7 @@ function Counter() {
   const addNewItem = async () => {
     if (!newItemName || (!newItemVariable && !newItemPrice)) return
     try {
-      await axios.post('https://hotel-rajendra-production.up.railway.app/api/menu/add',
+      await axios.post('https://opt-wireless-clover.ngrok-free.dev/api/menu/add',
         { category: newItemCategory, name: newItemName, price: newItemVariable ? 0 : parseInt(newItemPrice), variable: newItemVariable },
         { headers: { authorization: token } }
       )
@@ -330,7 +330,7 @@ function Counter() {
   const addWaiter = async () => {
     if (!newWaiterName || !newWaiterId || !newWaiterPassword) return
     try {
-      await axios.post('https://hotel-rajendra-production.up.railway.app/api/auth/waiter/create',
+      await axios.post('https://opt-wireless-clover.ngrok-free.dev/api/auth/waiter/create',
         { name: newWaiterName, userId: newWaiterId, password: newWaiterPassword },
         { headers: { authorization: token } }
       )
@@ -346,7 +346,7 @@ function Counter() {
   const deleteWaiter = async (id) => {
     if (!window.confirm('Delete this waiter?')) return
     try {
-      await axios.post(`https://hotel-rajendra-production.up.railway.app/api/auth/waiter/delete/${id}`, {}, { headers: { authorization: token } })
+      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/auth/waiter/delete/${id}`, {}, { headers: { authorization: token } })
       fetchWaiters()
     } catch (err) { alert('Failed to delete waiter') }
   }
