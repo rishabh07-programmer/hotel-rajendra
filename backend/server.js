@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
   res.send('Hotel Rajendra server is running')
 })
 
-const PORT = 8080
+const PORT = process.env.PORT || 8080
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`)
 })
