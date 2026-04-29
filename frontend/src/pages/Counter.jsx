@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
+
 function Counter() {
   const [activeTab, setActiveTab] = useState('orders')
   const [activeOrders, setActiveOrders] = useState([])

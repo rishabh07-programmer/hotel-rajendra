@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
+
 function Waiter() {
   const [step, setStep] = useState('table')
   const [tableNumber, setTableNumber] = useState('')

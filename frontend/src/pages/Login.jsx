@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import axios from 'axios'
 
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
+
 function Login() {
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')

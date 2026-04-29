@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
+
 function Kitchen() {
   const [orders, setOrders] = useState([])
   const token = localStorage.getItem('token')
