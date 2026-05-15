@@ -275,14 +275,57 @@ function Counter() {
   }
 
   const printBill = () => {
-    const billWindow = window.open('', '_blank')
     const finalTotal = selectedOrder.totalAmount - discount
     const itemRows = selectedOrder.items.map(item =>
-      `<tr><td>${item.name}</td><td style="text-align:center">${item.qty}</td><td style="text-align:right">₹${item.price * item.qty}</td></tr>`
+      `<tr><td>${item.name}</td><td style="text-align:center;width:32px">${item.qty}</td><td style="text-align:right;white-space:nowrap">&#8377;${item.price * item.qty}</td></tr>`
     ).join('')
-    billWindow.document.write(`<html><head><title>Bill</title><style>body{font-family:monospace;width:280px;margin:0 auto;font-size:13px}h2{text-align:center;margin:4px 0;font-size:15px}p{text-align:center;margin:2px 0;font-size:12px}table{width:100%;border-collapse:collapse;margin-top:8px}td{padding:3px 0}.divider{border-top:1px dashed black;margin:6px 0}.total{font-weight:bold;font-size:14px}.right{text-align:right}</style></head><body><h2>Hotel Rajendra</h2><p>& Sweet Home</p><p>Pargaon</p><div class="divider"></div><p>Table: ${selectedOrder.tableNumber} &nbsp;&nbsp; Date: ${new Date().toLocaleDateString('en-IN')}</p><p>Time: ${new Date().toLocaleTimeString('en-IN')}</p><div class="divider"></div><table><tr><td><b>Item</b></td><td style="text-align:center"><b>Qty</b></td><td style="text-align:right"><b>Amt</b></td></tr>${itemRows}</table><div class="divider"></div><table><tr><td>Subtotal</td><td class="right">₹${selectedOrder.totalAmount}</td></tr>${discount > 0 ? `<tr><td>Discount</td><td class="right">- ₹${discount}</td></tr>` : ''}<tr class="total"><td>Total</td><td class="right">₹${finalTotal}</td></tr></table><div class="divider"></div><p>Thank you for visiting!</p><p>Please visit again</p></body></html>`)
-    billWindow.document.close()
-    billWindow.print()
+    const html = `<!DOCTYPE html><html><head><title>Bill</title><style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:'Courier New',monospace;width:280px;padding:8px;font-size:13px}
+      h2{text-align:center;font-size:16px;margin-bottom:2px}
+      .sub{text-align:center;font-size:12px}
+      .divider{border-top:1px dashed #000;margin:6px 0}
+      table{width:100%;border-collapse:collapse}
+      td{padding:2px 0;vertical-align:top}
+      .center{text-align:center}
+      .bold{font-weight:bold}
+      .total td{font-weight:bold;font-size:15px;padding-top:4px}
+      @media print{body{width:100%}}
+    </style></head><body>
+    <h2>Hotel Rajendra</h2>
+    <p class="sub">&amp; Sweet Home, Pargaon</p>
+    <div class="divider"></div>
+    <p class="center">Table: ${selectedOrder.tableNumber} &nbsp; Date: ${new Date().toLocaleDateString('en-IN')}</p>
+    <p class="center">Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+    <div class="divider"></div>
+    <table>
+      <tr><td class="bold">Item</td><td class="bold" style="text-align:center;width:32px">Qty</td><td class="bold" style="text-align:right">Amt</td></tr>
+      <tr><td colspan="3"><div class="divider" style="margin:3px 0"></div></td></tr>
+      ${itemRows}
+    </table>
+    <div class="divider"></div>
+    <table>
+      <tr><td>Subtotal</td><td style="text-align:right">&#8377;${selectedOrder.totalAmount}</td></tr>
+      ${discount > 0 ? `<tr><td>Discount</td><td style="text-align:right">- &#8377;${discount}</td></tr>` : ''}
+      <tr class="total"><td>TOTAL</td><td style="text-align:right">&#8377;${finalTotal}</td></tr>
+    </table>
+    <div class="divider"></div>
+    <p class="center">Thank you for visiting!</p>
+    <p class="center">Please visit again</p>
+    </body></html>`
+
+    const iframe = document.createElement('iframe')
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:300px;height:600px;border:0;'
+    iframe.onload = () => {
+      iframe.contentWindow.focus()
+      iframe.contentWindow.print()
+      setTimeout(() => document.body.removeChild(iframe), 1000)
+    }
+    document.body.appendChild(iframe)
+    const doc = iframe.contentDocument || iframe.contentWindow.document
+    doc.open()
+    doc.write(html)
+    doc.close()
   }
 
   const handleTableSelect = (num) => {
