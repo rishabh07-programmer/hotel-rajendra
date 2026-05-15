@@ -9,7 +9,7 @@ function Kitchen() {
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/orders/active',
+      const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/orders/active',
         { headers: { authorization: token } }
       )
       setOrders(res.data)
@@ -20,7 +20,7 @@ function Kitchen() {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/status/${id}`,
+      await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/status/${id}`,
         { status },
         { headers: { authorization: token } }
       )
@@ -32,7 +32,7 @@ function Kitchen() {
 
   const markOrderDone = async (id) => {
     try {
-      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/bill/${id}`,
+      await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/bill/${id}`,
         {},
         { headers: { authorization: token } }
       )

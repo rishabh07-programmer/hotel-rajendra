@@ -10,7 +10,7 @@ function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await axios.post('https://opt-wireless-clover.ngrok-free.dev/api/auth/login', {
+      const res = await axios.post('https://shark-app-2tu4l.ondigitalocean.app/api/auth/login', {
         userId,
         password
       })

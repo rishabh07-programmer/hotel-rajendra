@@ -25,7 +25,7 @@ function Waiter() {
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/menu')
+        const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/menu')
         setMenu(res.data)
         if (res.data.length > 0) setSelectedCategory(res.data[0].category)
       } catch (err) {
@@ -38,7 +38,7 @@ function Waiter() {
   useEffect(() => {
     const fetchActive = async () => {
       try {
-        const res = await axios.get('https://opt-wireless-clover.ngrok-free.dev/api/orders/active',
+        const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/orders/active',
           { headers: { authorization: token } }
         )
         setActiveOrders(res.data)
@@ -53,7 +53,7 @@ function Waiter() {
 
   const checkTable = async (num) => {
     try {
-      const res = await axios.get(`https://opt-wireless-clover.ngrok-free.dev/api/orders/table/${num}`,
+      const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/table/${num}`,
         { headers: { authorization: token } }
       )
       if (res.data) {
@@ -135,12 +135,12 @@ function Waiter() {
     if (orderItems.length === 0) return
     try {
       if (existingOrder) {
-        await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/addItems/${existingOrder._id}`,
+        await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/addItems/${existingOrder._id}`,
           { items: orderItems },
           { headers: { authorization: token } }
         )
       } else {
-        await axios.post('https://opt-wireless-clover.ngrok-free.dev/api/orders/new',
+        await axios.post('https://shark-app-2tu4l.ondigitalocean.app/api/orders/new',
           { tableNumber: tableNumber, items: orderItems },
           { headers: { authorization: token } }
         )
@@ -157,7 +157,7 @@ function Waiter() {
   const cancelOrder = async () => {
     if (!existingOrder) return
     try {
-      await axios.post(`https://opt-wireless-clover.ngrok-free.dev/api/orders/cancel/${existingOrder._id}`,
+      await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/cancel/${existingOrder._id}`,
         {},
         { headers: { authorization: token } }
       )
