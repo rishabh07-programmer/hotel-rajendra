@@ -20,6 +20,7 @@ function Counter() {
   // Order item price editing state
   const [editingOrderItem, setEditingOrderItem] = useState(null)
   const [editOrderPrice, setEditOrderPrice] = useState('')
+  const [menuSearchQuery, setMenuSearchQuery] = useState('')
 
   // Menu settings state
   const [editingItem, setEditingItem] = useState(null)
@@ -461,7 +462,7 @@ function Counter() {
             {selectedOrder && !showMenu && (
               <div>
                 <h3>Table {selectedOrder.tableNumber}</h3>
-                <button onClick={() => setShowMenu(true)} style={{
+                <button onClick={() => { setShowMenu(true); setMenuSearchQuery('') }} style={{
                   padding: '8px 16px', backgroundColor: '#333', color: 'white',
                   border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '16px'
                 }}>+ Add More Items</button>
@@ -520,31 +521,58 @@ function Counter() {
             )}
             {selectedOrder && showMenu && (
               <div>
-                <span style={{ fontWeight: 'bold', fontSize: '16px', display: 'block', marginBottom: '16px' }}>Table {selectedOrder.tableNumber}</span>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                  {menu.map(cat => (
-                    <button key={cat.category} onClick={() => setSelectedCategory(cat.category)}
-                      style={{
-                        padding: '8px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-                        backgroundColor: selectedCategory === cat.category ? '#e65c00' : '#ddd',
-                        color: selectedCategory === cat.category ? 'white' : 'black'
-                      }}>{cat.category}</button>
-                  ))}
-                </div>
+                <span style={{ fontWeight: 'bold', fontSize: '16px', display: 'block', marginBottom: '12px' }}>Table {selectedOrder.tableNumber}</span>
+                <input
+                  type='text'
+                  placeholder='Search items...'
+                  value={menuSearchQuery}
+                  onChange={(e) => setMenuSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: '8px',
+                    border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box',
+                    marginBottom: '12px', outline: 'none'
+                  }}
+                />
+                {!menuSearchQuery && (
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    {menu.map(cat => (
+                      <button key={cat.category} onClick={() => setSelectedCategory(cat.category)}
+                        style={{
+                          padding: '8px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+                          backgroundColor: selectedCategory === cat.category ? '#e65c00' : '#ddd',
+                          color: selectedCategory === cat.category ? 'white' : 'black'
+                        }}>{cat.category}</button>
+                    ))}
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                  {menu.find(cat => cat.category === selectedCategory)?.items.map(item => (
-                    <button key={item.name} onClick={() => addItem(item)}
-                      style={{
-                        padding: '12px', backgroundColor: 'white', border: '1px solid #ddd',
-                        borderRadius: '8px', cursor: 'pointer', textAlign: 'left'
-                      }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{item.name}</div>
-                      <div style={{ color: '#e65c00', fontSize: '13px' }}>{item.variable ? 'Add Price' : `₹${item.price}`}</div>
-                    </button>
-                  ))}
+                  {menuSearchQuery
+                    ? menu.flatMap(cat => cat.items).filter(item =>
+                        item.name.toLowerCase().includes(menuSearchQuery.toLowerCase())
+                      ).map(item => (
+                        <button key={item.name} onClick={() => addItem(item)}
+                          style={{
+                            padding: '12px', backgroundColor: 'white', border: '1px solid #ddd',
+                            borderRadius: '8px', cursor: 'pointer', textAlign: 'left'
+                          }}>
+                          <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{item.name}</div>
+                          <div style={{ color: '#e65c00', fontSize: '13px' }}>{item.variable ? 'Add Price' : `₹${item.price}`}</div>
+                        </button>
+                      ))
+                    : menu.find(cat => cat.category === selectedCategory)?.items.map(item => (
+                        <button key={item.name} onClick={() => addItem(item)}
+                          style={{
+                            padding: '12px', backgroundColor: 'white', border: '1px solid #ddd',
+                            borderRadius: '8px', cursor: 'pointer', textAlign: 'left'
+                          }}>
+                          <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{item.name}</div>
+                          <div style={{ color: '#e65c00', fontSize: '13px' }}>{item.variable ? 'Add Price' : `₹${item.price}`}</div>
+                        </button>
+                      ))
+                  }
                 </div>
                 {selectedOrder.items.length > 0 && (
-                  <div onClick={() => setShowMenu(false)} style={{
+                  <div onClick={() => { setShowMenu(false); setMenuSearchQuery('') }} style={{
                     position: 'fixed', bottom: '24px', left: '60%', transform: 'translateX(-50%)',
                     backgroundColor: '#e65c00', color: 'white', padding: '14px 28px',
                     borderRadius: '30px', fontSize: '15px', fontWeight: 'bold',
