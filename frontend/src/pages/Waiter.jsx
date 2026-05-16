@@ -18,6 +18,7 @@ function Waiter() {
   const [selectedItemIndex, setSelectedItemIndex] = useState(null)
   const [existingOrder, setExistingOrder] = useState(null)
   const [activeOrders, setActiveOrders] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
 
   const token = sessionStorage.getItem('token')
   const name = sessionStorage.getItem('name')
@@ -282,37 +283,69 @@ function Waiter() {
             <span style={{ fontWeight: 'bold' }}>Table {tableNumber}</span>
           </div>
 
-          <div style={{ display: 'flex', overflowX: 'auto', padding: '12px 16px', gap: '8px', backgroundColor: 'white' }}>
-            {menu.map(cat => (
-              <button key={cat.category} onClick={() => setSelectedCategory(cat.category)}
-                style={{
-                  padding: '8px 16px', borderRadius: '20px', border: 'none',
-                  cursor: 'pointer', whiteSpace: 'nowrap',
-                  backgroundColor: selectedCategory === cat.category ? '#e65c00' : '#f0f0f0',
-                  color: selectedCategory === cat.category ? 'white' : 'black'
-                }}>
-                {cat.category}
-              </button>
-            ))}
+          <div style={{ padding: '10px 16px', backgroundColor: 'white', borderBottom: '1px solid #eee' }}>
+            <input
+              type='text'
+              placeholder='Search items...'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 14px', borderRadius: '8px',
+                border: '1px solid #ddd', fontSize: '15px', boxSizing: 'border-box',
+                outline: 'none'
+              }}
+            />
           </div>
 
+          {!searchQuery && (
+            <div style={{ display: 'flex', overflowX: 'auto', padding: '12px 16px', gap: '8px', backgroundColor: 'white' }}>
+              {menu.map(cat => (
+                <button key={cat.category} onClick={() => setSelectedCategory(cat.category)}
+                  style={{
+                    padding: '8px 16px', borderRadius: '20px', border: 'none',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    backgroundColor: selectedCategory === cat.category ? '#e65c00' : '#f0f0f0',
+                    color: selectedCategory === cat.category ? 'white' : 'black'
+                  }}>
+                  {cat.category}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', paddingBottom: '80px' }}>
-            {menu.find(cat => cat.category === selectedCategory)?.items.map(item => (
-              <button key={item.name} onClick={() => addItem(item)}
-                style={{
-                  padding: '14px', backgroundColor: 'white', border: '1px solid #ddd',
-                  borderRadius: '8px', cursor: 'pointer', textAlign: 'left'
-                }}>
-                <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }}>{item.name}</div>
-                <div style={{ color: '#e65c00', fontSize: '13px' }}>
-                  {item.variable ? 'Add Price' : `₹${item.price}`}
-                </div>
-              </button>
-            ))}
+            {searchQuery
+              ? menu.flatMap(cat => cat.items).filter(item =>
+                  item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                ).map(item => (
+                  <button key={item.name} onClick={() => addItem(item)}
+                    style={{
+                      padding: '14px', backgroundColor: 'white', border: '1px solid #ddd',
+                      borderRadius: '8px', cursor: 'pointer', textAlign: 'left'
+                    }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }}>{item.name}</div>
+                    <div style={{ color: '#e65c00', fontSize: '13px' }}>
+                      {item.variable ? 'Add Price' : `₹${item.price}`}
+                    </div>
+                  </button>
+                ))
+              : menu.find(cat => cat.category === selectedCategory)?.items.map(item => (
+                  <button key={item.name} onClick={() => addItem(item)}
+                    style={{
+                      padding: '14px', backgroundColor: 'white', border: '1px solid #ddd',
+                      borderRadius: '8px', cursor: 'pointer', textAlign: 'left'
+                    }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }}>{item.name}</div>
+                    <div style={{ color: '#e65c00', fontSize: '13px' }}>
+                      {item.variable ? 'Add Price' : `₹${item.price}`}
+                    </div>
+                  </button>
+                ))
+            }
           </div>
 
           {orderItems.length > 0 && (
-            <div onClick={() => setStep('review')} style={{
+            <div onClick={() => { setStep('review'); setSearchQuery('') }} style={{
               position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
               backgroundColor: '#e65c00', color: 'white', padding: '14px 28px',
               borderRadius: '30px', fontSize: '15px', fontWeight: 'bold',
@@ -327,7 +360,7 @@ function Waiter() {
 
       {step === 'review' && (
         <div style={{ padding: '16px' }}>
-          <button onClick={() => setStep('menu')} style={{
+          <button onClick={() => { setStep('menu'); setSearchQuery('') }} style={{
             padding: '8px 16px', backgroundColor: '#666', color: 'white',
             border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '16px'
           }}>
