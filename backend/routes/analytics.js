@@ -27,6 +27,7 @@ router.get('/today', verifyToken, async (req, res) => {
 
     const orders = await Order.find({
       status: 'billed',
+      isVoided: { $ne: true },
       billedAt: { $gte: today, $lt: tomorrow }
     })
 
@@ -50,6 +51,7 @@ router.get('/monthly/:year/:month', verifyToken, async (req, res) => {
 
     const orders = await Order.find({
       status: 'billed',
+      isVoided: { $ne: true },
       billedAt: { $gte: startDate, $lt: endDate }
     })
 
@@ -73,6 +75,7 @@ router.get('/yearly/:year', verifyToken, async (req, res) => {
 
     const orders = await Order.find({
       status: 'billed',
+      isVoided: { $ne: true },
       billedAt: { $gte: startDate, $lt: endDate }
     })
 
@@ -96,7 +99,7 @@ router.get('/top-items', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
 
-    const orders = await Order.find({ status: 'billed' })
+    const orders = await Order.find({ status: 'billed', isVoided: { $ne: true } })
 
     const itemSales = {}
     orders.forEach(order => {

@@ -50,6 +50,15 @@ function Counter() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
+  // Bills state
+  const [billedOrders, setBilledOrders] = useState([])
+  const [voidedOrders, setVoidedOrders] = useState([])
+  const [showVoidModal, setShowVoidModal] = useState(false)
+  const [voidingOrder, setVoidingOrder] = useState(null)
+  const [voidReason, setVoidReason] = useState('')
+  const [voidingLoading, setVoidingLoading] = useState(false)
+  const [voidError, setVoidError] = useState('')
+
   const token = localStorage.getItem('token')
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
@@ -129,6 +138,46 @@ function Counter() {
       setYearSales(res.data)
     } catch (err) {
       console.log(err)
+    }
+  }
+
+  const fetchBilledToday = async () => {
+    try {
+      const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/orders/billed/today', {
+        headers: { authorization: token }
+      })
+      setBilledOrders(res.data)
+    } catch (err) { console.log(err) }
+  }
+
+  const fetchVoidedOrders = async () => {
+    try {
+      const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/orders/voided', {
+        headers: { authorization: token }
+      })
+      setVoidedOrders(res.data)
+    } catch (err) { console.log(err) }
+  }
+
+  const voidOrder = async () => {
+    if (!voidingOrder) return
+    setVoidingLoading(true)
+    setVoidError('')
+    try {
+      await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/void/${voidingOrder._id}`,
+        { voidReason },
+        { headers: { authorization: token } }
+      )
+      setShowVoidModal(false)
+      setVoidingOrder(null)
+      setVoidReason('')
+      fetchBilledToday()
+      fetchVoidedOrders()
+      fetchTodaySales()
+    } catch (err) {
+      setVoidError(err?.response?.data?.message || 'Failed to void bill. Try again.')
+    } finally {
+      setVoidingLoading(false)
     }
   }
 
@@ -466,6 +515,11 @@ function Counter() {
           backgroundColor: activeTab === 'analytics' ? 'white' : 'transparent',
           color: activeTab === 'analytics' ? '#e65c00' : 'white'
         }}>📊 Analytics</button>
+        <button onClick={() => { setActiveTab('bills'); fetchBilledToday(); fetchVoidedOrders() }} style={{
+          padding: '5px 12px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', borderRadius: '6px',
+          backgroundColor: activeTab === 'bills' ? 'white' : 'transparent',
+          color: activeTab === 'bills' ? '#e65c00' : 'white'
+        }}>🧾 Bills</button>
         <button onClick={() => setShowLogoutConfirm(true)} style={{
           padding: '5px 12px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', borderRadius: '6px',
           backgroundColor: '#cc0000', color: 'white', marginLeft: '8px'
@@ -930,6 +984,68 @@ function Counter() {
         </div>
       )}
 
+      {/* BILLS TAB */}
+      {activeTab === 'bills' && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: '#f5f5f5' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '16px', color: '#333' }}>🧾 Bill Management</h2>
+
+          {/* Today's billed orders */}
+          <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, color: '#333' }}>Today's Bills</h3>
+              <button onClick={fetchBilledToday} style={{ padding: '6px 14px', backgroundColor: '#e65c00', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>🔄 Refresh</button>
+            </div>
+            {billedOrders.length === 0
+              ? <p style={{ color: '#999', textAlign: 'center', padding: '16px 0' }}>No bills closed today</p>
+              : billedOrders.map(order => (
+                <div key={order._id} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px', backgroundColor: '#f9f9f9', borderRadius: '8px', marginBottom: '8px', borderLeft: '4px solid #2ecc71'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold' }}>Table {order.tableNumber}</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                      {order.items.length} items · {new Date(order.billedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '16px' }}>₹{order.totalAmount}</span>
+                    <button onClick={() => { setVoidingOrder(order); setVoidReason(''); setVoidError(''); setShowVoidModal(true) }}
+                      style={{ padding: '6px 14px', backgroundColor: '#cc0000', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                      Void
+                    </button>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+
+          {/* Voided bills (last 30 days) */}
+          <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <h3 style={{ margin: '0 0 14px', color: '#333' }}>Voided Bills — Last 30 Days</h3>
+            {voidedOrders.length === 0
+              ? <p style={{ color: '#999', textAlign: 'center', padding: '16px 0' }}>No voided bills</p>
+              : voidedOrders.map(order => (
+                <div key={order._id} style={{
+                  padding: '12px', backgroundColor: '#fff5f5', borderRadius: '8px', marginBottom: '8px', borderLeft: '4px solid #cc0000'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 'bold' }}>Table {order.tableNumber}</div>
+                      <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                        Billed {new Date(order.billedAt).toLocaleDateString('en-IN')} · Voided {new Date(order.voidedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      {order.voidReason && <div style={{ fontSize: '12px', color: '#cc0000', marginTop: '4px' }}>Reason: {order.voidReason}</div>}
+                    </div>
+                    <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#cc0000', textDecoration: 'line-through' }}>₹{order.totalAmount}</span>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+
       {/* Modals */}
       {showNewOrder && <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '360px', maxHeight: '80vh', overflowY: 'auto' }}>
@@ -1052,6 +1168,41 @@ function Counter() {
               width: '100%', padding: '12px', backgroundColor: '#ddd',
               border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer'
             }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {showVoidModal && voidingOrder && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ backgroundColor: 'white', padding: '28px', borderRadius: '12px', width: '340px' }}>
+            <h3 style={{ marginBottom: '4px' }}>Void Bill</h3>
+            <p style={{ color: '#666', marginBottom: '4px', fontSize: '14px' }}>
+              Table {voidingOrder.tableNumber} · ₹{voidingOrder.totalAmount}
+            </p>
+            <p style={{ color: '#cc0000', fontSize: '13px', marginBottom: '16px' }}>
+              This will remove the bill from all sales analytics. This cannot be undone.
+            </p>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', display: 'block', marginBottom: '6px' }}>
+              Reason (optional)
+            </label>
+            <input type='text' placeholder='e.g. Wrong table, customer complaint...'
+              value={voidReason} onChange={(e) => setVoidReason(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', marginBottom: '12px' }}
+            />
+            {voidError && <p style={{ color: '#cc0000', fontSize: '13px', marginBottom: '8px' }}>{voidError}</p>}
+            <button onClick={voidOrder} disabled={voidingLoading} style={{
+              width: '100%', padding: '12px', backgroundColor: voidingLoading ? '#aaa' : '#cc0000',
+              color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px',
+              fontWeight: 'bold', cursor: voidingLoading ? 'not-allowed' : 'pointer', marginBottom: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+            }}>
+              {voidingLoading && <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />}
+              {voidingLoading ? 'Voiding...' : 'Yes, Void This Bill'}
+            </button>
+            <button onClick={() => { setShowVoidModal(false); setVoidingOrder(null); setVoidReason(''); setVoidError('') }}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#ddd', border: 'none', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>
+              Cancel
+            </button>
           </div>
         </div>
       )}

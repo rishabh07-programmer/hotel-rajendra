@@ -106,4 +106,50 @@ router.post('/cancel/:id', verifyToken, async (req, res) => {
   }
 })
 
+router.post('/void/:id', verifyToken, async (req, res) => {
+  try {
+    const { voidReason } = req.body
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { isVoided: true, voidedAt: new Date(), voidReason: voidReason || '' },
+      { new: true }
+    )
+    if (!order) return res.status(404).json({ message: 'Order not found' })
+    res.json({ message: 'Order voided successfully', order })
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
+router.get('/voided', verifyToken, async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const orders = await Order.find({
+      isVoided: true,
+      voidedAt: { $gte: thirtyDaysAgo }
+    }).sort({ voidedAt: -1 })
+    res.json(orders)
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
+router.get('/billed/today', verifyToken, async (req, res) => {
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const orders = await Order.find({
+      status: 'billed',
+      isVoided: { $ne: true },
+      billedAt: { $gte: today, $lt: tomorrow }
+    }).sort({ billedAt: -1 })
+    res.json(orders)
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
 module.exports = router

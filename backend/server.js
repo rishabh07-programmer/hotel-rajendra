@@ -2,6 +2,7 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const dotenv = require('dotenv')
+const cron = require('node-cron')
 
 dotenv.config()
 
@@ -24,6 +25,28 @@ app.use('/api/analytics', require('./routes/analytics'))
 
 app.get('/', (req, res) => {
   res.send('Hotel Rajendra server is running')
+})
+
+// Monthly cleanup: archive voided bills older than 30 days into separate collection
+cron.schedule('0 0 1 * *', async () => {
+  try {
+    const Order = require('./models/Order')
+    const ArchivedOrder = require('./models/ArchivedOrder')
+
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const stale = await Order.find({ isVoided: true, voidedAt: { $lt: thirtyDaysAgo } })
+    if (stale.length === 0) return
+
+    const archiveDocs = stale.map(o => ({ ...o.toObject(), archivedAt: new Date() }))
+    await ArchivedOrder.insertMany(archiveDocs, { ordered: false })
+    await Order.deleteMany({ _id: { $in: stale.map(o => o._id) } })
+
+    console.log(`Archived ${stale.length} voided orders older than 30 days`)
+  } catch (err) {
+    console.error('Monthly cleanup job error:', err)
+  }
 })
 
 const PORT = process.env.PORT || 8080

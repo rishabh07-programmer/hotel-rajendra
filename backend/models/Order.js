@@ -45,6 +45,17 @@ const orderSchema = new mongoose.Schema({
   },
   billedAt: {
     type: Date
+  },
+  isVoided: {
+    type: Boolean,
+    default: false
+  },
+  voidedAt: {
+    type: Date
+  },
+  voidReason: {
+    type: String,
+    default: ''
   }
 }, { timestamps: true })
 
