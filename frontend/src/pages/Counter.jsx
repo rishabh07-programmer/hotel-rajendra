@@ -53,6 +53,10 @@ function Counter() {
   const token = localStorage.getItem('token')
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [confirmingOrder, setConfirmingOrder] = useState(false)
+  const [orderError, setOrderError] = useState('')
+  const [savingBill, setSavingBill] = useState(false)
+  const [billError, setBillError] = useState('')
 
   const logout = () => {
     localStorage.clear()
@@ -227,7 +231,11 @@ function Counter() {
   }
 
   const sendToKitchen = async () => {
-    try {
+    if (selectedOrder.items.length === 0) return
+    setConfirmingOrder(true)
+    setOrderError('')
+
+    const attempt = async () => {
       if (selectedOrder._id) {
         await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/addItems/${selectedOrder._id}`,
           { items: selectedOrder.items },
@@ -243,13 +251,31 @@ function Counter() {
         )
         setSelectedOrder(res.data.order)
       }
-      setShowMenu(false)
-      fetchActiveOrders()
-      alert('Order confirmed!')
-    } catch (err) { console.log(err) }
+    }
+
+    for (let i = 0; i <= 2; i++) {
+      try {
+        await attempt()
+        setShowMenu(false)
+        fetchActiveOrders()
+        setConfirmingOrder(false)
+        alert('Order confirmed!')
+        return
+      } catch (err) {
+        if (i < 2) {
+          await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+        } else {
+          setConfirmingOrder(false)
+          const msg = err?.response?.data?.message || err?.message || 'Network error'
+          setOrderError(`Failed after 3 attempts: ${msg}`)
+        }
+      }
+    }
   }
 
   const saveAndBill = async () => {
+    setSavingBill(true)
+    setBillError('')
     try {
       if (selectedOrder._id) {
         await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/addItems/${selectedOrder._id}`,
@@ -269,7 +295,12 @@ function Counter() {
       setDiscount(0)
       fetchActiveOrders()
       fetchTodaySales()
-    } catch (err) { console.log(err) }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Network error'
+      setBillError(`Bill not saved — ${msg}. Please try again.`)
+    } finally {
+      setSavingBill(false)
+    }
   }
 
   const cancelOrder = async () => {
@@ -338,7 +369,7 @@ function Counter() {
 
   const handleTableSelect = (num) => {
     const existing = activeOrders.find(o => o.tableNumber == num)
-    if (existing) { setSelectedOrder(existing); setShowMenu(false); setDiscount(0) }
+    if (existing) { setSelectedOrder(existing); setShowMenu(false); setDiscount(0); setOrderError(''); setBillError('') }
     else { setSelectedOrder({ tableNumber: num, items: [], totalAmount: 0 }); setShowMenu(true) }
     setShowNewOrder(false)
     setSelectedCategory(menu.length > 0 ? menu[0].category : '')
@@ -410,6 +441,7 @@ function Counter() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Top bar with tabs */}
       <div style={{ display: 'flex', backgroundColor: '#e65c00', alignItems: 'center', padding: '8px 16px', gap: '8px' }}>
@@ -451,7 +483,7 @@ function Counter() {
             <h3 style={{ marginBottom: '8px' }}>Active Tables</h3>
             {activeOrders.length === 0 && <p style={{ color: '#999' }}>No active orders</p>}
             {activeOrders.map(order => (
-              <div key={order._id} onClick={() => { setSelectedOrder(order); setShowMenu(false); setDiscount(0) }}
+              <div key={order._id} onClick={() => { setSelectedOrder(order); setShowMenu(false); setDiscount(0); setOrderError(''); setBillError('') }}
                 style={{
                   backgroundColor: selectedOrder?._id === order._id ? '#e65c00' : 'white',
                   color: selectedOrder?._id === order._id ? 'white' : 'black',
@@ -513,16 +545,28 @@ function Counter() {
                     <span>Total</span><span>₹{selectedOrder.totalAmount - discount}</span>
                   </div>
                 </div>
-                <button onClick={sendToKitchen} style={{
-                  width: '100%', padding: '16px', backgroundColor: '#e65c00',
-                  color: 'white', border: 'none', borderRadius: '8px',
-                  fontSize: '18px', cursor: 'pointer', marginTop: '16px', marginBottom: '8px'
-                }}>Confirm Order</button>
-                <button onClick={saveAndBill} style={{
-                  width: '100%', padding: '16px', backgroundColor: '#2ecc71',
-                  color: 'white', border: 'none', borderRadius: '8px',
-                  fontSize: '18px', cursor: 'pointer'
-                }}>Print Bill & Close Table</button>
+                <button onClick={sendToKitchen} disabled={confirmingOrder || savingBill} style={{
+                  width: '100%', padding: '16px', border: 'none', borderRadius: '8px',
+                  fontSize: '18px', marginTop: '16px', marginBottom: '4px',
+                  backgroundColor: confirmingOrder ? '#aaa' : '#e65c00',
+                  color: 'white', cursor: confirmingOrder ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
+                }}>
+                  {confirmingOrder && <span style={{ width: '18px', height: '18px', border: '3px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />}
+                  {confirmingOrder ? 'Confirming...' : 'Confirm Order'}
+                </button>
+                {orderError && <p style={{ color: '#cc0000', fontSize: '13px', margin: '0 0 8px', textAlign: 'center' }}>{orderError}</p>}
+                <button onClick={saveAndBill} disabled={savingBill || confirmingOrder} style={{
+                  width: '100%', padding: '16px', border: 'none', borderRadius: '8px',
+                  fontSize: '18px', marginBottom: '4px',
+                  backgroundColor: savingBill ? '#aaa' : '#2ecc71',
+                  color: 'white', cursor: savingBill ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
+                }}>
+                  {savingBill && <span style={{ width: '18px', height: '18px', border: '3px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />}
+                  {savingBill ? 'Saving Bill...' : 'Print Bill & Close Table'}
+                </button>
+                {billError && <p style={{ color: '#cc0000', fontSize: '13px', margin: '0 0 8px', textAlign: 'center' }}>{billError}</p>}
                 <button onClick={cancelOrder} style={{
                   width: '100%', padding: '14px', backgroundColor: '#ff4444',
                   color: 'white', border: 'none', borderRadius: '8px',
