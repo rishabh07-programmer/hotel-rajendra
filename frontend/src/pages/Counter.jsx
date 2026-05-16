@@ -58,6 +58,10 @@ function Counter() {
   const [voidReason, setVoidReason] = useState('')
   const [voidingLoading, setVoidingLoading] = useState(false)
   const [voidError, setVoidError] = useState('')
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState('')
+  const [waitersLoading, setWaitersLoading] = useState(false)
+  const [waitersError, setWaitersError] = useState('')
 
   const token = localStorage.getItem('token')
 
@@ -98,47 +102,50 @@ function Counter() {
   }
 
   const fetchWaiters = async () => {
+    setWaitersLoading(true)
+    setWaitersError('')
     try {
+      console.log('[Waiters] GET /api/auth/waiters')
       const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/auth/waiters', {
         headers: { authorization: token }
       })
+      console.log('[Waiters] Response:', res.data)
       setWaiters(res.data)
     } catch (err) {
-      console.log(err)
+      console.error('[Waiters] Error:', err?.response?.status, err?.response?.data || err?.message)
+      if (err?.response?.status === 401) setWaitersError('Session expired — please logout and login again.')
+      else if (err?.response?.status === 403) setWaitersError('Not authorized — owner login required.')
+      else setWaitersError(err?.response?.data?.message || 'Failed to load waiters. Check your connection.')
+    } finally {
+      setWaitersLoading(false)
     }
   }
 
   const fetchTodaySales = async () => {
-    try {
-      const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/analytics/today', {
-        headers: { authorization: token }
-      })
-      setTodaySales(res.data)
-    } catch (err) {
-      console.log(err)
-    }
+    console.log('[Analytics] GET /api/analytics/today')
+    const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/analytics/today', {
+      headers: { authorization: token }
+    })
+    console.log('[Analytics] Today:', res.data)
+    setTodaySales(res.data)
   }
 
   const fetchMonthlySales = async (month, year) => {
-    try {
-      const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/analytics/monthly/${year}/${month}`, {
-        headers: { authorization: token }
-      })
-      setMonthSales(res.data)
-    } catch (err) {
-      console.log(err)
-    }
+    console.log(`[Analytics] GET /api/analytics/monthly/${year}/${month}`)
+    const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/analytics/monthly/${year}/${month}`, {
+      headers: { authorization: token }
+    })
+    console.log('[Analytics] Monthly:', res.data)
+    setMonthSales(res.data)
   }
 
   const fetchYearlySales = async (year) => {
-    try {
-      const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/analytics/yearly/${year}`, {
-        headers: { authorization: token }
-      })
-      setYearSales(res.data)
-    } catch (err) {
-      console.log(err)
-    }
+    console.log(`[Analytics] GET /api/analytics/yearly/${year}`)
+    const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/analytics/yearly/${year}`, {
+      headers: { authorization: token }
+    })
+    console.log('[Analytics] Yearly:', res.data)
+    setYearSales(res.data)
   }
 
   const fetchBilledToday = async () => {
@@ -173,7 +180,7 @@ function Counter() {
       setVoidReason('')
       fetchBilledToday()
       fetchVoidedOrders()
-      fetchTodaySales()
+      fetchTodaySales().catch(e => console.error('[BG] fetchTodaySales:', e?.message))
     } catch (err) {
       setVoidError(err?.response?.data?.message || 'Failed to void bill. Try again.')
     } finally {
@@ -182,35 +189,48 @@ function Counter() {
   }
 
   const fetchTopItems = async () => {
-    try {
-      const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/analytics/top-items', {
-        headers: { authorization: token }
-      })
-      setTopItems(res.data)
-    } catch (err) {
-      console.log(err)
-    }
+    console.log('[Analytics] GET /api/analytics/top-items')
+    const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/analytics/top-items', {
+      headers: { authorization: token }
+    })
+    console.log('[Analytics] TopItems:', res.data)
+    setTopItems(res.data)
   }
 
   const fetchMonthlyTopItems = async (month, year) => {
-    try {
-      const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/analytics/top-items?month=${month}&year=${year}`, {
-        headers: { authorization: token }
-      })
-      setTopItems(res.data)
-    } catch (err) {
-      console.log(err)
-    }
+    const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/analytics/top-items?month=${month}&year=${year}`, {
+      headers: { authorization: token }
+    })
+    setTopItems(res.data)
   }
 
   const fetchYearlyTopItems = async (year) => {
+    const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/analytics/top-items?year=${year}`, {
+      headers: { authorization: token }
+    })
+    setTopItems(res.data)
+  }
+
+  const loadAnalytics = async (view, month, year) => {
+    setAnalyticsLoading(true)
+    setAnalyticsError('')
     try {
-      const res = await axios.get(`https://shark-app-2tu4l.ondigitalocean.app/api/analytics/top-items?year=${year}`, {
-        headers: { authorization: token }
-      })
-      setTopItems(res.data)
+      const m = month ?? selectedMonth
+      const y = year ?? selectedYear
+      if (view === 'today') {
+        await Promise.all([fetchTodaySales(), fetchTopItems()])
+      } else if (view === 'monthly') {
+        await Promise.all([fetchMonthlySales(m, y), fetchMonthlyTopItems(m, y)])
+      } else if (view === 'yearly') {
+        await Promise.all([fetchYearlySales(y), fetchYearlyTopItems(y)])
+      }
     } catch (err) {
-      console.log(err)
+      console.error('[Analytics] Load error:', err?.response?.status, err?.response?.data || err?.message)
+      if (err?.response?.status === 401) setAnalyticsError('Session expired — please logout and login again.')
+      else if (err?.response?.status === 403) setAnalyticsError('Not authorized — owner login required.')
+      else setAnalyticsError(err?.response?.data?.message || 'Failed to load analytics. Check your connection.')
+    } finally {
+      setAnalyticsLoading(false)
     }
   }
 
@@ -218,8 +238,7 @@ function Counter() {
     fetchMenu()
     fetchActiveOrders()
     fetchWaiters()
-    fetchTodaySales()
-    fetchTopItems()
+    loadAnalytics('today')
     const interval = setInterval(fetchActiveOrders, 5000)
     const menuInterval = setInterval(fetchMenu, 30000)
     return () => { clearInterval(interval); clearInterval(menuInterval) }
@@ -343,7 +362,7 @@ function Counter() {
       setSelectedOrder(null)
       setDiscount(0)
       fetchActiveOrders()
-      fetchTodaySales()
+      fetchTodaySales().catch(e => console.error('[BG] fetchTodaySales:', e?.message))
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Network error'
       setBillError(`Bill not saved — ${msg}. Please try again.`)
@@ -510,7 +529,7 @@ function Counter() {
           backgroundColor: activeTab === 'waiters' ? 'white' : 'transparent',
           color: activeTab === 'waiters' ? '#e65c00' : 'white'
         }}>👥 Waiters</button>
-        <button onClick={() => { setActiveTab('analytics'); fetchTodaySales() }} style={{
+        <button onClick={() => { setActiveTab('analytics'); setAnalyticsView('today'); loadAnalytics('today') }} style={{
           padding: '5px 12px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', borderRadius: '6px',
           backgroundColor: activeTab === 'analytics' ? 'white' : 'transparent',
           color: activeTab === 'analytics' ? '#e65c00' : 'white'
@@ -780,9 +799,22 @@ function Counter() {
               border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'
             }}>+ Add Waiter</button>
           </div>
-          {waiters.length === 0 ? (
+          {waitersLoading && (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <span style={{ width: '32px', height: '32px', border: '4px solid #ddd', borderTopColor: '#e65c00', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+              <p style={{ color: '#666', marginTop: '12px' }}>Loading waiters...</p>
+            </div>
+          )}
+          {waitersError && !waitersLoading && (
+            <div style={{ backgroundColor: '#ffebee', border: '1px solid #ef9a9a', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+              <p style={{ color: '#c62828', margin: '0 0 4px', fontWeight: 'bold' }}>Failed to load waiters</p>
+              <p style={{ color: '#c62828', margin: '0 0 12px', fontSize: '13px' }}>{waitersError}</p>
+              <button onClick={fetchWaiters} style={{ padding: '8px 16px', backgroundColor: '#e65c00', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Retry</button>
+            </div>
+          )}
+          {!waitersLoading && !waitersError && waiters.length === 0 ? (
             <p style={{ color: '#999', textAlign: 'center' }}>No waiters added yet</p>
-          ) : (
+          ) : !waitersLoading && !waitersError && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
               {waiters.map(waiter => (
                 <div key={waiter._id} style={{
@@ -817,19 +849,19 @@ function Counter() {
 
           {/* View selector */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            <button onClick={() => { setAnalyticsView('today'); fetchTodaySales(); fetchTopItems() }} style={{
+            <button onClick={() => { setAnalyticsView('today'); loadAnalytics('today') }} style={{
               padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold',
               backgroundColor: analyticsView === 'today' ? '#e65c00' : 'white',
               color: analyticsView === 'today' ? 'white' : '#333',
               boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
             }}>📅 Today</button>
-            <button onClick={() => { setAnalyticsView('monthly'); fetchMonthlySales(selectedMonth, selectedYear); fetchMonthlyTopItems(selectedMonth, selectedYear) }} style={{
+            <button onClick={() => { setAnalyticsView('monthly'); loadAnalytics('monthly', selectedMonth, selectedYear) }} style={{
               padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold',
               backgroundColor: analyticsView === 'monthly' ? '#e65c00' : 'white',
               color: analyticsView === 'monthly' ? 'white' : '#333',
               boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
             }}>📆 Monthly</button>
-            <button onClick={() => { setAnalyticsView('yearly'); fetchYearlySales(selectedYear); fetchYearlyTopItems(selectedYear) }} style={{
+            <button onClick={() => { setAnalyticsView('yearly'); loadAnalytics('yearly', undefined, selectedYear) }} style={{
               padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold',
               backgroundColor: analyticsView === 'yearly' ? '#e65c00' : 'white',
               color: analyticsView === 'yearly' ? 'white' : '#333',
@@ -837,7 +869,22 @@ function Counter() {
             }}>📈 Yearly</button>
           </div>
 
-          {analyticsView === 'today' && todaySales && (
+          {analyticsLoading && (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <span style={{ width: '32px', height: '32px', border: '4px solid #ddd', borderTopColor: '#e65c00', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+              <p style={{ color: '#666', marginTop: '12px' }}>Loading analytics...</p>
+            </div>
+          )}
+
+          {analyticsError && !analyticsLoading && (
+            <div style={{ backgroundColor: '#ffebee', border: '1px solid #ef9a9a', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+              <p style={{ color: '#c62828', margin: '0 0 4px', fontWeight: 'bold' }}>Failed to load analytics</p>
+              <p style={{ color: '#c62828', margin: '0 0 12px', fontSize: '13px' }}>{analyticsError}</p>
+              <button onClick={() => loadAnalytics(analyticsView)} style={{ padding: '8px 16px', backgroundColor: '#e65c00', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Retry</button>
+            </div>
+          )}
+
+          {!analyticsLoading && !analyticsError && analyticsView === 'today' && todaySales && (
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#333' }}>Today's Sales</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
@@ -857,7 +904,7 @@ function Counter() {
             </div>
           )}
 
-          {analyticsView === 'today' && topItems.length > 0 && (
+          {!analyticsLoading && !analyticsError && analyticsView === 'today' && topItems.length > 0 && (
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#333' }}>Top 5 Items</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
@@ -877,15 +924,15 @@ function Counter() {
             </div>
           )}
 
-          {analyticsView === 'monthly' && (
+          {!analyticsLoading && !analyticsError && analyticsView === 'monthly' && (
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#333' }}>Monthly Sales</h3>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                <select value={selectedMonth} onChange={(e) => { setSelectedMonth(parseInt(e.target.value)); fetchMonthlySales(parseInt(e.target.value), selectedYear); fetchMonthlyTopItems(parseInt(e.target.value), selectedYear) }}
+                <select value={selectedMonth} onChange={(e) => { const m = parseInt(e.target.value); setSelectedMonth(m); loadAnalytics('monthly', m, selectedYear) }}
                   style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' }}>
                   {months.map((m, idx) => <option key={idx} value={idx + 1}>{m}</option>)}
                 </select>
-                <select value={selectedYear} onChange={(e) => { setSelectedYear(parseInt(e.target.value)); fetchMonthlySales(selectedMonth, parseInt(e.target.value)); fetchMonthlyTopItems(selectedMonth, parseInt(e.target.value)) }}
+                <select value={selectedYear} onChange={(e) => { const y = parseInt(e.target.value); setSelectedYear(y); loadAnalytics('monthly', selectedMonth, y) }}
                   style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' }}>
                   {years.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -926,10 +973,10 @@ function Counter() {
             </div>
           )}
 
-          {analyticsView === 'yearly' && (
+          {!analyticsLoading && !analyticsError && analyticsView === 'yearly' && (
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#333' }}>Yearly Sales - {selectedYear}</h3>
-              <select value={selectedYear} onChange={(e) => { setSelectedYear(parseInt(e.target.value)); fetchYearlySales(parseInt(e.target.value)); fetchYearlyTopItems(parseInt(e.target.value)) }}
+              <select value={selectedYear} onChange={(e) => { const y = parseInt(e.target.value); setSelectedYear(y); loadAnalytics('yearly', undefined, y) }}
                 style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', marginBottom: '16px' }}>
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
