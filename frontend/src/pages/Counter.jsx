@@ -50,7 +50,7 @@ function Counter() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
-  const token = sessionStorage.getItem('token')
+  const token = localStorage.getItem('token')
 
   const fetchMenu = async () => {
     try {

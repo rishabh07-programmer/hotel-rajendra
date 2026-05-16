@@ -14,9 +14,9 @@ function Login() {
         userId,
         password
       })
-      sessionStorage.setItem('token', res.data.token)
-      sessionStorage.setItem('role', res.data.role)
-      sessionStorage.setItem('name', res.data.name)
+      localStorage.setItem('token', res.data.token)
+      localStorage.setItem('role', res.data.role)
+      localStorage.setItem('name', res.data.name)
 
       if (res.data.role === 'waiter') window.location.href = '/waiter'
       if (res.data.role === 'owner') window.location.href = '/counter'

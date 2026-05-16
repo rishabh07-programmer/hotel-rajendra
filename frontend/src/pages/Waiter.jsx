@@ -20,8 +20,8 @@ function Waiter() {
   const [activeOrders, setActiveOrders] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
 
-  const token = sessionStorage.getItem('token')
-  const name = sessionStorage.getItem('name')
+  const token = localStorage.getItem('token')
+  const name = localStorage.getItem('name')
 
   useEffect(() => {
     const fetchMenu = async () => {
