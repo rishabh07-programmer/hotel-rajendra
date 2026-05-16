@@ -52,6 +52,11 @@ function Counter() {
 
   const token = localStorage.getItem('token')
 
+  const logout = () => {
+    localStorage.clear()
+    window.location.href = '/'
+  }
+
   const fetchMenu = async () => {
     try {
       const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/menu')
@@ -427,6 +432,10 @@ function Counter() {
           backgroundColor: activeTab === 'analytics' ? 'white' : 'transparent',
           color: activeTab === 'analytics' ? '#e65c00' : 'white'
         }}>📊 Analytics</button>
+        <button onClick={logout} style={{
+          padding: '5px 12px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', borderRadius: '6px',
+          backgroundColor: '#cc0000', color: 'white', marginLeft: '8px'
+        }}>Logout</button>
       </div>
 
       {/* ORDERS TAB */}

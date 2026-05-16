@@ -7,6 +7,11 @@ function Kitchen() {
   const [orders, setOrders] = useState([])
   const token = localStorage.getItem('token')
 
+  const logout = () => {
+    localStorage.clear()
+    window.location.href = '/'
+  }
+
   const fetchOrders = async () => {
     try {
       const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/orders/active',
@@ -90,9 +95,15 @@ function Kitchen() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ color: 'white', margin: 0 }}>Kitchen Display</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2ecc71' }}></div>
-          <span style={{ color: '#2ecc71', fontSize: '14px' }}>Live</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2ecc71' }}></div>
+            <span style={{ color: '#2ecc71', fontSize: '14px' }}>Live</span>
+          </div>
+          <button onClick={logout} style={{
+            padding: '6px 14px', backgroundColor: '#cc0000', color: 'white',
+            border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer'
+          }}>Logout</button>
         </div>
       </div>
 

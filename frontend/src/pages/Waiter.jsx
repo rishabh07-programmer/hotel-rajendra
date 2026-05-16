@@ -23,6 +23,11 @@ function Waiter() {
   const token = localStorage.getItem('token')
   const name = localStorage.getItem('name')
 
+  const logout = () => {
+    localStorage.clear()
+    window.location.href = '/'
+  }
+
   useEffect(() => {
     const fetchMenu = async () => {
       try {
@@ -173,9 +178,15 @@ function Waiter() {
   return (
     <div style={{ fontFamily: 'sans-serif', maxWidth: '480px', margin: '0 auto', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
 
-      <div style={{ backgroundColor: '#e65c00', padding: '16px', color: 'white' }}>
-        <h2 style={{ margin: 0, fontSize: '18px' }}>Hotel Rajendra</h2>
-        <p style={{ margin: 0, fontSize: '13px', opacity: 0.8 }}>Waiter: {name}</p>
+      <div style={{ backgroundColor: '#e65c00', padding: '16px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '18px' }}>Hotel Rajendra</h2>
+          <p style={{ margin: 0, fontSize: '13px', opacity: 0.8 }}>Waiter: {name}</p>
+        </div>
+        <button onClick={logout} style={{
+          padding: '6px 14px', backgroundColor: '#cc0000', color: 'white',
+          border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer'
+        }}>Logout</button>
       </div>
 
       {step === 'table' && (
