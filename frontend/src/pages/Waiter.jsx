@@ -23,6 +23,8 @@ function Waiter() {
   const token = localStorage.getItem('token')
   const name = localStorage.getItem('name')
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+
   const logout = () => {
     localStorage.clear()
     window.location.href = '/'
@@ -183,7 +185,7 @@ function Waiter() {
           <h2 style={{ margin: 0, fontSize: '18px' }}>Hotel Rajendra</h2>
           <p style={{ margin: 0, fontSize: '13px', opacity: 0.8 }}>Waiter: {name}</p>
         </div>
-        <button onClick={logout} style={{
+        <button onClick={() => setShowLogoutConfirm(true)} style={{
           padding: '6px 14px', backgroundColor: '#cc0000', color: 'white',
           border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer'
         }}>Logout</button>
@@ -519,6 +521,17 @@ function Waiter() {
               width: '100%', padding: '12px', backgroundColor: '#ddd',
               border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer'
             }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {showLogoutConfirm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ backgroundColor: 'white', padding: '28px', borderRadius: '12px', width: '300px', textAlign: 'center' }}>
+            <h3 style={{ marginBottom: '8px' }}>Logout</h3>
+            <p style={{ color: '#666', marginBottom: '24px' }}>Are you sure you want to logout?</p>
+            <button onClick={logout} style={{ width: '100%', padding: '12px', backgroundColor: '#cc0000', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px' }}>Yes, Logout</button>
+            <button onClick={() => setShowLogoutConfirm(false)} style={{ width: '100%', padding: '12px', backgroundColor: '#ddd', border: 'none', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
           </div>
         </div>
       )}
