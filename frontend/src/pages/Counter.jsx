@@ -72,6 +72,8 @@ function Counter() {
   const [orderError, setOrderError] = useState('')
   const [savingBill, setSavingBill] = useState(false)
   const [billError, setBillError] = useState('')
+  const [showReceiptModal, setShowReceiptModal] = useState(false)
+  const [receiptText, setReceiptText] = useState('')
 
   const logout = () => {
     localStorage.clear()
@@ -432,7 +434,23 @@ function Counter() {
     receipt += '\n\n\n' // paper feed
 
     const base64Receipt = btoa(unescape(encodeURIComponent(receipt)))
-    window.location.href = `rawbt:base64,${base64Receipt}`
+
+    // Trigger the rawbt: intent from a hidden iframe, not window.location.href.
+    // Assigning the custom scheme directly to location.href causes a top-level
+    // navigation attempt — when RawBT isn't installed/registered, the browser
+    // (or an Android WebView kiosk shell) can load an error page in place of
+    // the app, tearing down all React state and making the whole UI look broken.
+    // Routing it through an iframe keeps the failed navigation scoped to the iframe.
+    const iframe = document.createElement('iframe')
+    iframe.style.display = 'none'
+    iframe.src = `rawbt:base64,${base64Receipt}`
+    document.body.appendChild(iframe)
+    setTimeout(() => document.body.removeChild(iframe), 1000)
+
+    // Always show the receipt on screen too — RawBT prints silently with no
+    // feedback, so this is the only way to confirm the bill actually went out.
+    setReceiptText(receipt)
+    setShowReceiptModal(true)
   }
 
   const handleTableSelect = (num) => {
@@ -1094,6 +1112,24 @@ function Counter() {
       )}
 
       {/* Modals */}
+      {showReceiptModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', width: '320px', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0 }}>Bill Sent to Printer</h3>
+              <button onClick={() => setShowReceiptModal(false)} style={{ backgroundColor: '#ddd', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '16px' }}>×</button>
+            </div>
+            <pre style={{
+              fontFamily: "'Courier New', monospace", fontSize: '12px', whiteSpace: 'pre-wrap',
+              backgroundColor: '#f9f9f9', padding: '12px', borderRadius: '8px', margin: 0
+            }}>{receiptText}</pre>
+            <button onClick={() => setShowReceiptModal(false)} style={{
+              width: '100%', marginTop: '14px', padding: '12px', backgroundColor: '#e65c00',
+              color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'
+            }}>Close</button>
+          </div>
+        </div>
+      )}
       {showNewOrder && <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '360px', maxHeight: '80vh', overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
