@@ -3,6 +3,8 @@ import axios from 'axios'
 
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
 
+const PRINT_WIDTH = 32
+
 function Counter() {
   const [activeTab, setActiveTab] = useState('orders')
   const [activeOrders, setActiveOrders] = useState([])
@@ -383,56 +385,54 @@ function Counter() {
 
   const printBill = () => {
     const finalTotal = selectedOrder.totalAmount - discount
-    const itemRows = selectedOrder.items.map(item =>
-      `<tr><td>${item.name}</td><td style="text-align:center;width:32px">${item.qty}</td><td style="text-align:right;white-space:nowrap">&#8377;${item.price * item.qty}</td></tr>`
-    ).join('')
-    const html = `<!DOCTYPE html><html><head><title>Bill</title><style>
-      *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:'Courier New',monospace;width:280px;padding:8px;font-size:13px}
-      h2{text-align:center;font-size:16px;margin-bottom:2px}
-      .sub{text-align:center;font-size:12px}
-      .divider{border-top:1px dashed #000;margin:6px 0}
-      table{width:100%;border-collapse:collapse}
-      td{padding:2px 0;vertical-align:top}
-      .center{text-align:center}
-      .bold{font-weight:bold}
-      .total td{font-weight:bold;font-size:15px;padding-top:4px}
-      @media print{body{width:100%}}
-    </style></head><body>
-    <h2>Hotel Rajendra</h2>
-    <p class="sub">&amp; Sweet Home, Pargaon</p>
-    <div class="divider"></div>
-    <p class="center">Table: ${selectedOrder.tableNumber} &nbsp; Date: ${new Date().toLocaleDateString('en-IN')}</p>
-    <p class="center">Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
-    <div class="divider"></div>
-    <table>
-      <tr><td class="bold">Item</td><td class="bold" style="text-align:center;width:32px">Qty</td><td class="bold" style="text-align:right">Amt</td></tr>
-      <tr><td colspan="3"><div class="divider" style="margin:3px 0"></div></td></tr>
-      ${itemRows}
-    </table>
-    <div class="divider"></div>
-    <table>
-      <tr><td>Subtotal</td><td style="text-align:right">&#8377;${selectedOrder.totalAmount}</td></tr>
-      ${discount > 0 ? `<tr><td>Discount</td><td style="text-align:right">- &#8377;${discount}</td></tr>` : ''}
-      <tr class="total"><td>TOTAL</td><td style="text-align:right">&#8377;${finalTotal}</td></tr>
-    </table>
-    <div class="divider"></div>
-    <p class="center">Thank you for visiting!</p>
-    <p class="center">Please visit again</p>
-    </body></html>`
 
-    const iframe = document.createElement('iframe')
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:300px;height:600px;border:0;'
-    iframe.onload = () => {
-      iframe.contentWindow.focus()
-      iframe.contentWindow.print()
-      setTimeout(() => document.body.removeChild(iframe), 1000)
+    // Center a line of text within PRINT_WIDTH
+    const center = (text) => {
+      const pad = Math.max(0, Math.floor((PRINT_WIDTH - text.length) / 2))
+      return ' '.repeat(pad) + text
     }
-    document.body.appendChild(iframe)
-    const doc = iframe.contentDocument || iframe.contentWindow.document
-    doc.open()
-    doc.write(html)
-    doc.close()
+
+    // Full-width divider
+    const divider = () => '-'.repeat(PRINT_WIDTH)
+
+    // Left-align `left`, right-align `right`, fill the middle with spaces
+    const row = (left, right) => {
+      const rightStr = String(right)
+      const maxLeft = Math.max(0, PRINT_WIDTH - rightStr.length - 1)
+      const leftStr = left.length > maxLeft ? left.slice(0, maxLeft) : left
+      const gap = PRINT_WIDTH - leftStr.length - rightStr.length
+      return leftStr + ' '.repeat(Math.max(1, gap))  + rightStr
+    }
+
+    // Item line: "name xQty" left, price right — wraps to a second line if too long
+    const itemLine = (item) => {
+      const namePart = `${item.name} x${item.qty}`
+      const priceStr = `Rs.${item.price * item.qty}`
+      if (namePart.length + priceStr.length + 1 <= PRINT_WIDTH) {
+        return row(namePart, priceStr) + '\n'
+      }
+      return `${item.name}\n${row(`  x${item.qty}`, priceStr)}\n`
+    }
+
+    let receipt = ''
+    receipt += center('HOTEL RAJENDRA') + '\n'
+    receipt += center('& Sweet Home, Pargaon') + '\n'
+    receipt += divider() + '\n'
+    receipt += `Table: ${selectedOrder.tableNumber}\n`
+    receipt += `Date: ${new Date().toLocaleDateString('en-IN')}  Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}\n`
+    receipt += divider() + '\n'
+    selectedOrder.items.forEach(item => { receipt += itemLine(item) })
+    receipt += divider() + '\n'
+    receipt += row('Subtotal', `Rs.${selectedOrder.totalAmount}`) + '\n'
+    if (discount > 0) receipt += row('Discount', `-Rs.${discount}`) + '\n'
+    receipt += row('TOTAL', `Rs.${finalTotal}`) + '\n'
+    receipt += divider() + '\n'
+    receipt += center('Thank you for visiting!') + '\n'
+    receipt += center('Please visit again') + '\n'
+    receipt += '\n\n\n' // paper feed
+
+    const base64Receipt = btoa(unescape(encodeURIComponent(receipt)))
+    window.location.href = `rawbt:base64,${base64Receipt}`
   }
 
   const handleTableSelect = (num) => {
