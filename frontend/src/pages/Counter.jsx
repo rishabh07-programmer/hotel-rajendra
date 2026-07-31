@@ -433,24 +433,13 @@ function Counter() {
     receipt += center('Please visit again') + '\n'
     receipt += '\n\n\n' // paper feed
 
-    const base64Receipt = btoa(unescape(encodeURIComponent(receipt)))
-
-    // Trigger the rawbt: intent from a hidden iframe, not window.location.href.
-    // Assigning the custom scheme directly to location.href causes a top-level
-    // navigation attempt — when RawBT isn't installed/registered, the browser
-    // (or an Android WebView kiosk shell) can load an error page in place of
-    // the app, tearing down all React state and making the whole UI look broken.
-    // Routing it through an iframe keeps the failed navigation scoped to the iframe.
-    const iframe = document.createElement('iframe')
-    iframe.style.display = 'none'
-    iframe.src = `rawbt:base64,${base64Receipt}`
-    document.body.appendChild(iframe)
-    setTimeout(() => document.body.removeChild(iframe), 1000)
-
-    // Always show the receipt on screen too — RawBT prints silently with no
-    // feedback, so this is the only way to confirm the bill actually went out.
     setReceiptText(receipt)
     setShowReceiptModal(true)
+
+    // Delay window.print() so the modal has actually painted before the system
+    // print dialog opens — on Android Chrome this is where the paired Bluetooth
+    // printer shows up as a destination via the @media print rules in index.css.
+    setTimeout(() => window.print(), 300)
   }
 
   const handleTableSelect = (num) => {
@@ -1119,7 +1108,7 @@ function Counter() {
               <h3 style={{ margin: 0 }}>Bill Sent to Printer</h3>
               <button onClick={() => setShowReceiptModal(false)} style={{ backgroundColor: '#ddd', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '16px' }}>×</button>
             </div>
-            <pre style={{
+            <pre className="receipt-print" style={{
               fontFamily: "'Courier New', monospace", fontSize: '12px', whiteSpace: 'pre-wrap',
               backgroundColor: '#f9f9f9', padding: '12px', borderRadius: '8px', margin: 0
             }}>{receiptText}</pre>
