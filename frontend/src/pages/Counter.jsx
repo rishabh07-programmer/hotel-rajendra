@@ -362,7 +362,6 @@ function Counter() {
         )
         await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/bill/${res.data.order._id}`, {}, { headers: { authorization: token } })
       }
-      printBill()
       setSelectedOrder(null)
       setDiscount(0)
       fetchActiveOrders()
@@ -373,6 +372,11 @@ function Counter() {
     } finally {
       setSavingBill(false)
     }
+  }
+
+  const printAndCloseBill = async () => {
+    printBill()
+    await saveAndBill()
   }
 
   const cancelOrder = async () => {
@@ -672,16 +676,26 @@ function Counter() {
                   {confirmingOrder ? 'Confirming...' : 'Confirm Order'}
                 </button>
                 {orderError && <p style={{ color: '#cc0000', fontSize: '13px', margin: '0 0 8px', textAlign: 'center' }}>{orderError}</p>}
-                <button onClick={saveAndBill} disabled={savingBill || confirmingOrder} style={{
-                  width: '100%', padding: '16px', border: 'none', borderRadius: '8px',
-                  fontSize: '18px', marginBottom: '4px',
-                  backgroundColor: savingBill ? '#aaa' : '#2ecc71',
-                  color: 'white', cursor: savingBill ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
-                }}>
-                  {savingBill && <span style={{ width: '18px', height: '18px', border: '3px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />}
-                  {savingBill ? 'Saving Bill...' : 'Print Bill & Close Table'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
+                  <button onClick={saveAndBill} disabled={savingBill || confirmingOrder} style={{
+                    flex: 1, padding: '16px', border: 'none', borderRadius: '8px',
+                    fontSize: '16px', backgroundColor: savingBill ? '#aaa' : '#607d8b',
+                    color: 'white', cursor: savingBill ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
+                  }}>
+                    {savingBill && <span style={{ width: '18px', height: '18px', border: '3px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />}
+                    {savingBill ? 'Saving...' : 'Close Table'}
+                  </button>
+                  <button onClick={printAndCloseBill} disabled={savingBill || confirmingOrder} style={{
+                    flex: 1, padding: '16px', border: 'none', borderRadius: '8px',
+                    fontSize: '16px', backgroundColor: savingBill ? '#aaa' : '#2ecc71',
+                    color: 'white', cursor: savingBill ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
+                  }}>
+                    {savingBill && <span style={{ width: '18px', height: '18px', border: '3px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />}
+                    {savingBill ? 'Saving...' : 'Print & Close'}
+                  </button>
+                </div>
                 {billError && <p style={{ color: '#cc0000', fontSize: '13px', margin: '0 0 8px', textAlign: 'center' }}>{billError}</p>}
                 <button onClick={cancelOrder} style={{
                   width: '100%', padding: '14px', backgroundColor: '#ff4444',
