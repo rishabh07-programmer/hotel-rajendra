@@ -436,10 +436,17 @@ function Counter() {
     setReceiptText(receipt)
     setShowReceiptModal(true)
 
-    // Delay window.print() so the modal has actually painted before the system
-    // print dialog opens — on Android Chrome this is where the paired Bluetooth
-    // printer shows up as a destination via the @media print rules in index.css.
-    setTimeout(() => window.print(), 300)
+    // Hand the receipt to RawBT via its rawbt: URL scheme, triggered from a
+    // hidden anchor click rather than window.location.href (see prior fix:
+    // assigning the scheme to location.href risks a top-level navigation that
+    // can wipe the SPA if RawBT isn't registered to handle it).
+    const base64Receipt = btoa(unescape(encodeURIComponent(receipt)))
+    const link = document.createElement('a')
+    link.href = `rawbt:base64,${base64Receipt}`
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const handleTableSelect = (num) => {
@@ -1108,7 +1115,7 @@ function Counter() {
               <h3 style={{ margin: 0 }}>Bill Sent to Printer</h3>
               <button onClick={() => setShowReceiptModal(false)} style={{ backgroundColor: '#ddd', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '16px' }}>×</button>
             </div>
-            <pre className="receipt-print" style={{
+            <pre style={{
               fontFamily: "'Courier New', monospace", fontSize: '12px', whiteSpace: 'pre-wrap',
               backgroundColor: '#f9f9f9', padding: '12px', borderRadius: '8px', margin: 0
             }}>{receiptText}</pre>
