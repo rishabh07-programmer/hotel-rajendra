@@ -425,34 +425,47 @@ function Counter() {
       return `${item.name}\n${row(`  x${item.qty}`, priceStr)}\n`
     }
 
-    let receipt = ''
-    receipt += ALIGN_CENTER
-    receipt += BOLD_ON + 'HOTEL RAJENDRA & SWEET HOME' + BOLD_OFF + '\n'
-    receipt += 'Pargaon Salu Malu' + '\n'
-    receipt += divider() + '\n'
+    // Order info / items / totals / thank-you — identical text in both versions
+    let body = ''
+    body += `Table: ${selectedOrder.tableNumber}\n`
+    body += `Date: ${new Date().toLocaleDateString('en-IN')}  Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}\n`
+    body += divider() + '\n'
+    selectedOrder.items.forEach(item => { body += itemLine(item) })
+    body += divider() + '\n'
+    body += row('Subtotal', `Rs.${selectedOrder.totalAmount}`) + '\n'
+    if (discount > 0) body += row('Discount', `-Rs.${discount}`) + '\n'
+    body += row('TOTAL', `Rs.${finalTotal}`) + '\n'
+    body += divider() + '\n'
+    body += center('Thank you for visiting!') + '\n'
+    body += center('Please visit again') + '\n'
+    body += '\n\n\n\n' // feed paper past the cutter
 
-    receipt += ALIGN_LEFT
-    receipt += `Table: ${selectedOrder.tableNumber}\n`
-    receipt += `Date: ${new Date().toLocaleDateString('en-IN')}  Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}\n`
-    receipt += divider() + '\n'
-    selectedOrder.items.forEach(item => { receipt += itemLine(item) })
-    receipt += divider() + '\n'
-    receipt += row('Subtotal', `Rs.${selectedOrder.totalAmount}`) + '\n'
-    if (discount > 0) receipt += row('Discount', `-Rs.${discount}`) + '\n'
-    receipt += row('TOTAL', `Rs.${finalTotal}`) + '\n'
-    receipt += divider() + '\n'
-    receipt += center('Thank you for visiting!') + '\n'
-    receipt += center('Please visit again') + '\n'
-    receipt += '\n\n\n\n' // feed paper past the cutter
+    // Plain text version for the on-screen modal — no control characters,
+    // header centered manually since the browser can't interpret ESC a 1.
+    const plainReceipt =
+      center('HOTEL RAJENDRA & SWEET HOME') + '\n' +
+      center('Pargaon Salu Malu') + '\n' +
+      divider() + '\n' +
+      body
 
-    setReceiptText(receipt)
+    // ESC/POS version for the RawBT payload — printer-side align/bold, so the
+    // header is sent as raw text rather than manually padded.
+    const escReceipt =
+      ALIGN_CENTER +
+      BOLD_ON + 'HOTEL RAJENDRA & SWEET HOME' + BOLD_OFF + '\n' +
+      'Pargaon Salu Malu' + '\n' +
+      divider() + '\n' +
+      ALIGN_LEFT +
+      body
+
+    setReceiptText(plainReceipt)
     setShowReceiptModal(true)
 
     // Hand the receipt to RawBT via its rawbt: URL scheme, triggered from a
     // hidden anchor click rather than window.location.href (see prior fix:
     // assigning the scheme to location.href risks a top-level navigation that
     // can wipe the SPA if RawBT isn't registered to handle it).
-    const base64Receipt = btoa(unescape(encodeURIComponent(receipt)))
+    const base64Receipt = btoa(unescape(encodeURIComponent(escReceipt)))
     const link = document.createElement('a')
     link.href = `rawbt:base64,${base64Receipt}`
     link.style.display = 'none'
