@@ -162,6 +162,14 @@ function Waiter() {
     }
   }
 
+  const backToTables = () => {
+    setStep('table')
+    setTableNumber('')
+    setExistingOrder(null)
+    setOrderItems([])
+    setSearchQuery('')
+  }
+
   const cancelOrder = async () => {
     if (!existingOrder) return
     try {
@@ -292,7 +300,13 @@ function Waiter() {
 
       {step === 'menu' && (
         <div>
-          <div style={{ padding: '12px 16px', backgroundColor: 'white', borderBottom: '1px solid #eee' }}>
+          <div style={{ padding: '12px 16px', backgroundColor: 'white', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button onClick={backToTables} style={{
+              padding: '6px 12px', backgroundColor: '#ddd', border: 'none',
+              borderRadius: '6px', fontSize: '13px', cursor: 'pointer'
+            }}>
+              ← Back to Tables
+            </button>
             <span style={{ fontWeight: 'bold' }}>Table {tableNumber}</span>
           </div>
 
@@ -373,12 +387,20 @@ function Waiter() {
 
       {step === 'review' && (
         <div style={{ padding: '16px' }}>
-          <button onClick={() => { setStep('menu'); setSearchQuery('') }} style={{
-            padding: '8px 16px', backgroundColor: '#666', color: 'white',
-            border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '16px'
-          }}>
-            ← Add More Items
-          </button>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <button onClick={backToTables} style={{
+              padding: '8px 16px', backgroundColor: '#ddd',
+              border: 'none', borderRadius: '8px', cursor: 'pointer'
+            }}>
+              ← Back to Tables
+            </button>
+            <button onClick={() => { setStep('menu'); setSearchQuery('') }} style={{
+              padding: '8px 16px', backgroundColor: '#666', color: 'white',
+              border: 'none', borderRadius: '8px', cursor: 'pointer'
+            }}>
+              ← Add More Items
+            </button>
+          </div>
 
           <h3 style={{ marginBottom: '12px' }}>Table {tableNumber} — Order Summary</h3>
 
