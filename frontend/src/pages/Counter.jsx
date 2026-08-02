@@ -396,6 +396,8 @@ function Counter() {
     const ALIGN_LEFT = ESC + 'a' + String.fromCharCode(0)
     const BOLD_ON = ESC + 'E' + String.fromCharCode(1)
     const BOLD_OFF = ESC + 'E' + String.fromCharCode(0)
+    const FEED_6 = String.fromCharCode(27, 100, 6)
+    const FULL_CUT = String.fromCharCode(29, 86, 1)
 
     // Center a line of text within PRINT_WIDTH (for text printed under ALIGN_LEFT)
     const center = (text) => {
@@ -456,7 +458,9 @@ function Counter() {
       'Pargaon Salu Malu' + '\n' +
       divider() + '\n' +
       ALIGN_LEFT +
-      body
+      body +
+      FEED_6 +
+      FULL_CUT
 
     setReceiptText(plainReceipt)
     setShowReceiptModal(true)
