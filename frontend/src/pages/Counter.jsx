@@ -192,6 +192,24 @@ function Counter() {
     }
   }
 
+  const editBill = async (order) => {
+    try {
+      const res = await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/unbill/${order._id}`, {}, { headers: { authorization: token } })
+      setSelectedOrder(res.data.order)
+      setDiscount(0)
+      setShowMenu(false)
+      setActiveTab('orders')
+      fetchBilledToday()
+      fetchActiveOrders()
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to reopen bill for editing')
+    }
+  }
+
+  const reprintBill = (order) => {
+    printBill(order, 0)
+  }
+
   const fetchTopItems = async () => {
     console.log('[Analytics] GET /api/analytics/top-items')
     const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/analytics/top-items', {
@@ -389,8 +407,8 @@ function Counter() {
     } catch (err) { console.log(err) }
   }
 
-  const printBill = () => {
-    const finalTotal = selectedOrder.totalAmount - discount
+  const printBill = (order = selectedOrder, billDiscount = discount) => {
+    const finalTotal = order.totalAmount - billDiscount
 
     // ESC/POS control sequences. ESC is byte 27; 'a'/'E' are the literal
     // command-letter bytes (97/69), not passed through fromCharCode, so the
@@ -433,13 +451,13 @@ function Counter() {
 
     // Order info / items / totals / thank-you — identical text in both versions
     let body = ''
-    body += `Table: ${selectedOrder.tableNumber}\n`
+    body += `Table: ${order.tableNumber}\n`
     body += `Date: ${new Date().toLocaleDateString('en-IN')}  Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}\n`
     body += divider() + '\n'
-    selectedOrder.items.forEach(item => { body += itemLine(item) })
+    order.items.forEach(item => { body += itemLine(item) })
     body += divider() + '\n'
-    body += row('Subtotal', `Rs.${selectedOrder.totalAmount}`) + '\n'
-    if (discount > 0) body += row('Discount', `-Rs.${discount}`) + '\n'
+    body += row('Subtotal', `Rs.${order.totalAmount}`) + '\n'
+    if (billDiscount > 0) body += row('Discount', `-Rs.${billDiscount}`) + '\n'
     body += row('TOTAL', `Rs.${finalTotal}`) + '\n'
     body += divider() + '\n'
     body += center('Thank you for visiting!') + '\n'
@@ -1114,6 +1132,14 @@ function Counter() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '16px' }}>₹{order.totalAmount}</span>
+                    <button onClick={() => editBill(order)}
+                      style={{ padding: '6px 14px', backgroundColor: '#e65c00', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                      Edit
+                    </button>
+                    <button onClick={() => reprintBill(order)}
+                      style={{ padding: '6px 14px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                      Reprint
+                    </button>
                     <button onClick={() => { setVoidingOrder(order); setVoidReason(''); setVoidError(''); setShowVoidModal(true) }}
                       style={{ padding: '6px 14px', backgroundColor: '#cc0000', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
                       Void

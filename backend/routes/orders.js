@@ -70,6 +70,23 @@ router.post('/bill/:id', verifyToken, async (req, res) => {
   }
 })
 
+router.post('/unbill/:id', verifyToken, async (req, res) => {
+  try {
+    const billedOrder = await Order.findById(req.params.id)
+    if (!billedOrder) return res.status(404).json({ message: 'Order not found' })
+
+    const existingActive = await Order.findOne({ tableNumber: billedOrder.tableNumber, status: 'active' })
+    if (existingActive) return res.status(400).json({ message: 'Table already has an active order' })
+
+    billedOrder.status = 'active'
+    billedOrder.billedAt = undefined
+    await billedOrder.save()
+    res.json({ message: 'Order restored to active', order: billedOrder })
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
 router.post('/addItems/:id', verifyToken, async (req, res) => {
   try {
     const { items } = req.body
