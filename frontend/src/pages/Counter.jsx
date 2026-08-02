@@ -388,7 +388,16 @@ function Counter() {
   const printBill = () => {
     const finalTotal = selectedOrder.totalAmount - discount
 
-    // Center a line of text within PRINT_WIDTH
+    // ESC/POS control sequences. ESC is byte 27; 'a'/'E' are the literal
+    // command-letter bytes (97/69), not passed through fromCharCode, so the
+    // alignment/emphasis bytes come out correctly.
+    const ESC = String.fromCharCode(27)
+    const ALIGN_CENTER = ESC + 'a' + String.fromCharCode(1)
+    const ALIGN_LEFT = ESC + 'a' + String.fromCharCode(0)
+    const BOLD_ON = ESC + 'E' + String.fromCharCode(1)
+    const BOLD_OFF = ESC + 'E' + String.fromCharCode(0)
+
+    // Center a line of text within PRINT_WIDTH (for text printed under ALIGN_LEFT)
     const center = (text) => {
       const pad = Math.max(0, Math.floor((PRINT_WIDTH - text.length) / 2))
       return ' '.repeat(pad) + text
@@ -417,9 +426,12 @@ function Counter() {
     }
 
     let receipt = ''
-    receipt += center('HOTEL RAJENDRA') + '\n'
-    receipt += center('& Sweet Home, Pargaon') + '\n'
+    receipt += ALIGN_CENTER
+    receipt += BOLD_ON + 'HOTEL RAJENDRA & SWEET HOME' + BOLD_OFF + '\n'
+    receipt += 'Pargaon Salu Malu' + '\n'
     receipt += divider() + '\n'
+
+    receipt += ALIGN_LEFT
     receipt += `Table: ${selectedOrder.tableNumber}\n`
     receipt += `Date: ${new Date().toLocaleDateString('en-IN')}  Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}\n`
     receipt += divider() + '\n'
@@ -431,7 +443,7 @@ function Counter() {
     receipt += divider() + '\n'
     receipt += center('Thank you for visiting!') + '\n'
     receipt += center('Please visit again') + '\n'
-    receipt += '\n\n\n' // paper feed
+    receipt += '\n\n\n\n' // feed paper past the cutter
 
     setReceiptText(receipt)
     setShowReceiptModal(true)
