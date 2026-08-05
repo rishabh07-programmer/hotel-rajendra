@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import axios from 'axios'
+import { saveAuth } from '../utils/auth'
 
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
 
@@ -51,9 +52,7 @@ function Login() {
         deviceId: getDeviceId(),
         deviceName: getDeviceName()
       })
-      localStorage.setItem('token', res.data.token)
-      localStorage.setItem('role', res.data.role)
-      localStorage.setItem('name', res.data.name)
+      saveAuth(res.data.role, res.data.token, res.data.name)
 
       if (res.data.role === 'waiter') window.location.href = '/waiter'
       if (res.data.role === 'owner') window.location.href = '/counter'

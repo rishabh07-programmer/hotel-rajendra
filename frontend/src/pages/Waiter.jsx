@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { getAuth, clearAuth } from '../utils/auth'
 
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
 
@@ -20,13 +21,12 @@ function Waiter() {
   const [activeOrders, setActiveOrders] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
 
-  const token = localStorage.getItem('token')
-  const name = localStorage.getItem('name')
+  const { token, name } = getAuth('waiter')
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const logout = () => {
-    localStorage.clear()
+    clearAuth('waiter')
     window.location.href = '/'
   }
 

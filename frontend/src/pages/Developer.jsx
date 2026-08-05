@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { getAuth, clearAuth } from '../utils/auth'
 
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
 
@@ -7,12 +8,12 @@ function Developer() {
   const [owners, setOwners] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const token = localStorage.getItem('token')
+  const token = getAuth('developer').token
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const logout = () => {
-    localStorage.clear()
+    clearAuth('developer')
     window.location.href = '/'
   }
 

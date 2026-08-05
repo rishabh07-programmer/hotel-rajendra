@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { getAuth, clearAuth } from '../utils/auth'
 
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
 
@@ -65,7 +66,7 @@ function Counter() {
   const [waitersLoading, setWaitersLoading] = useState(false)
   const [waitersError, setWaitersError] = useState('')
 
-  const token = localStorage.getItem('token')
+  const token = getAuth('owner').token
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [confirmingOrder, setConfirmingOrder] = useState(false)
@@ -76,7 +77,7 @@ function Counter() {
   const [receiptText, setReceiptText] = useState('')
 
   const logout = () => {
-    localStorage.clear()
+    clearAuth('owner')
     window.location.href = '/'
   }
 

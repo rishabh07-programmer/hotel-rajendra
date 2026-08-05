@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { getAuth, clearAuth } from '../utils/auth'
 
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
 
 function Kitchen() {
   const [orders, setOrders] = useState([])
-  const token = localStorage.getItem('token')
+  const token = getAuth('kitchen').token
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const logout = () => {
-    localStorage.clear()
+    clearAuth('kitchen')
     window.location.href = '/'
   }
 

@@ -28,10 +28,22 @@ router.post('/login', async (req, res) => {
 
     if (user.role !== 'developer' && deviceId) {
       if (!user.deviceId) {
-        user.deviceId = deviceId
-        user.deviceName = deviceName || 'Unknown device'
-        await user.save()
+        // Atomic conditional update: only claims the device slot if deviceId is still
+        // null at write time, so two concurrent first-logins can't both win the race.
+        const filter = { _id: user._id, deviceId: null }
+        const update = { $set: { deviceId, deviceName: deviceName || 'Unknown device' } }
+        console.log('[Device Lock] Claiming device for', userId, '- filter:', filter, 'update:', update)
+        const claimed = await User.findOneAndUpdate(filter, update, { new: true })
+        console.log('[Device Lock] Claim result for', userId, '- saved deviceId:', claimed ? claimed.deviceId : '(lost race)')
+
+        if (!claimed) {
+          const fresh = await User.findOne({ userId })
+          if (fresh.deviceId !== deviceId) {
+            return res.status(403).json({ message: 'This ID is already active on another device. Ask your manager to logout that device first.' })
+          }
+        }
       } else if (user.deviceId !== deviceId) {
+        console.log('[Device Lock] Blocked login for', userId, '- stored deviceId:', user.deviceId, 'incoming:', deviceId)
         return res.status(403).json({ message: 'This ID is already active on another device. Ask your manager to logout that device first.' })
       }
     }
