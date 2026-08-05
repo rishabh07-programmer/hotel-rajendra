@@ -19,12 +19,22 @@ const verifyToken = (req, res, next) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const { userId, password } = req.body
+    const { userId, password, deviceId, deviceName } = req.body
     const user = await User.findOne({ userId })
     if (!user) return res.status(400).json({ message: 'Wrong ID or password' })
 
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) return res.status(400).json({ message: 'Wrong ID or password' })
+
+    if (user.role !== 'developer' && deviceId) {
+      if (!user.deviceId) {
+        user.deviceId = deviceId
+        user.deviceName = deviceName || 'Unknown device'
+        await user.save()
+      } else if (user.deviceId !== deviceId) {
+        return res.status(403).json({ message: 'This ID is already active on another device. Ask your manager to logout that device first.' })
+      }
+    }
 
     const token = jwt.sign(
       { userId: user.userId, role: user.role, name: user.name },
@@ -90,6 +100,47 @@ router.post('/waiter/delete/:id', verifyToken, async (req, res) => {
     if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
     await User.findByIdAndDelete(req.params.id)
     res.json({ message: 'Waiter deleted' })
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
+// Force logout a waiter's device (owner only)
+router.post('/waiter/force-logout/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { deviceId: null, deviceName: null },
+      { new: true }
+    ).select('-password')
+    res.json({ message: 'Device logged out', user })
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
+// Get all owners with their active device (developer only)
+router.get('/owners', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'developer') return res.status(403).json({ message: 'Not allowed' })
+    const owners = await User.find({ role: 'owner' }, '-password')
+    res.json(owners)
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
+// Force logout an owner's device (developer only)
+router.post('/owner/force-logout/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'developer') return res.status(403).json({ message: 'Not allowed' })
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { deviceId: null, deviceName: null },
+      { new: true }
+    ).select('-password')
+    res.json({ message: 'Device logged out', user })
   } catch (err) {
     res.status(500).json({ message: 'Server error' })
   }

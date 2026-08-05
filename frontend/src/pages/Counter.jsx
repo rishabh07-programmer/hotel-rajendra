@@ -568,6 +568,14 @@ function Counter() {
     } catch (err) { alert('Failed to delete waiter') }
   }
 
+  const forceLogoutWaiter = async (id) => {
+    if (!window.confirm('Force logout this device? The waiter will be able to login fresh on any device.')) return
+    try {
+      await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/auth/waiter/force-logout/${id}`, {}, { headers: { authorization: token } })
+      fetchWaiters()
+    } catch (err) { alert('Failed to force logout device') }
+  }
+
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   const currentYear = new Date().getFullYear()
   const years = [currentYear - 2, currentYear - 1, currentYear]
@@ -905,6 +913,22 @@ function Counter() {
                     color: waiter.status === 'active' ? '#2ecc71' : '#ff4444'
                   }}>
                     {waiter.status === 'active' ? '✓ Active' : '✗ Inactive'}
+                  </div>
+                  <div style={{
+                    backgroundColor: '#f5f5f5', borderRadius: '8px', padding: '8px 10px',
+                    marginBottom: '12px', fontSize: '12px', color: '#555'
+                  }}>
+                    {waiter.deviceId ? (
+                      <>
+                        <div style={{ marginBottom: '6px' }}>📱 Active on: <strong>{waiter.deviceName || 'Unknown device'}</strong></div>
+                        <button onClick={() => forceLogoutWaiter(waiter._id)} style={{
+                          width: '100%', padding: '6px', backgroundColor: '#ff9800', color: 'white',
+                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold'
+                        }}>Force Logout</button>
+                      </>
+                    ) : (
+                      <span style={{ color: '#999' }}>No device linked yet</span>
+                    )}
                   </div>
                   <button onClick={() => deleteWaiter(waiter._id)} style={{
                     width: '100%', padding: '8px', backgroundColor: '#ff4444', color: 'white',

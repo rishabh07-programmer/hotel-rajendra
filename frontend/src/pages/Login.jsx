@@ -3,6 +3,41 @@ import axios from 'axios'
 
 axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true'
 
+function getDeviceId() {
+  const raw = [
+    navigator.userAgent,
+    screen.width,
+    screen.height,
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  ].join('|')
+
+  let hash = 0
+  for (let i = 0; i < raw.length; i++) {
+    hash = (hash * 31 + raw.charCodeAt(i)) | 0
+  }
+
+  return btoa(`${raw.length}-${hash}`)
+}
+
+function getDeviceName() {
+  const ua = navigator.userAgent
+
+  let browser = 'Unknown Browser'
+  if (ua.includes('Edg/')) browser = 'Edge'
+  else if (ua.includes('Chrome/') && !ua.includes('Chromium')) browser = 'Chrome'
+  else if (ua.includes('Firefox/')) browser = 'Firefox'
+  else if (ua.includes('Safari/') && !ua.includes('Chrome')) browser = 'Safari'
+
+  let os = 'Unknown OS'
+  if (ua.includes('Windows')) os = 'Windows'
+  else if (ua.includes('Android')) os = 'Android'
+  else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS'
+  else if (ua.includes('Mac OS')) os = 'macOS'
+  else if (ua.includes('Linux')) os = 'Linux'
+
+  return `${browser} on ${os}`
+}
+
 function Login() {
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
@@ -12,7 +47,9 @@ function Login() {
     try {
       const res = await axios.post('https://shark-app-2tu4l.ondigitalocean.app/api/auth/login', {
         userId,
-        password
+        password,
+        deviceId: getDeviceId(),
+        deviceName: getDeviceName()
       })
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('role', res.data.role)
@@ -21,9 +58,10 @@ function Login() {
       if (res.data.role === 'waiter') window.location.href = '/waiter'
       if (res.data.role === 'owner') window.location.href = '/counter'
       if (res.data.role === 'kitchen') window.location.href = '/kitchen'
+      if (res.data.role === 'developer') window.location.href = '/developer'
 
     } catch (err) {
-      setError('Wrong ID or password')
+      setError(err.response?.data?.message || 'Wrong ID or password')
     }
   }
 

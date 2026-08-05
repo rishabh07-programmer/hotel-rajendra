@@ -16,13 +16,21 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['waiter', 'owner', 'kitchen'],
+    enum: ['waiter', 'owner', 'kitchen', 'developer'],
     required: true
   },
   status: {
     type: String,
     enum: ['active', 'inactive'],
     default: 'active'
+  },
+  deviceId: {
+    type: String,
+    default: null
+  },
+  deviceName: {
+    type: String,
+    default: null
   }
 }, { timestamps: true })
 
