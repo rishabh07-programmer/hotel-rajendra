@@ -593,6 +593,12 @@ function Counter() {
   const currentYear = new Date().getFullYear()
   const years = [currentYear - 2, currentYear - 1, currentYear]
 
+  // Flatten menu into individual items each carrying their own category, so
+  // the Take Order item grid filters per-item by a strict, case-sensitive
+  // category === selectedCategory match instead of trusting a pre-grouped
+  // category bucket from the server.
+  const flatMenuItems = menu.flatMap(cat => cat.items.map(item => ({ ...item, category: cat.category })))
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -785,7 +791,11 @@ function Counter() {
                 {!menuSearchQuery && (
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
                     {menu.map(cat => (
-                      <button key={cat.category} onClick={() => setSelectedCategory(cat.category)}
+                      <button key={cat.category} onClick={() => {
+                        setSelectedCategory(cat.category)
+                        const preview = flatMenuItems.filter(item => item.category === cat.category).slice(0, 3)
+                        console.log('[Category Filter]', 'selectedCategory =', cat.category, preview.map(item => ({ name: item.name, category: item.category })))
+                      }}
                         style={{
                           padding: '8px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
                           backgroundColor: selectedCategory === cat.category ? '#e65c00' : '#ddd',
@@ -796,10 +806,10 @@ function Counter() {
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                   {menuSearchQuery
-                    ? menu.flatMap(cat => cat.items).filter(item =>
+                    ? flatMenuItems.filter(item =>
                         item.name.toLowerCase().includes(menuSearchQuery.toLowerCase())
                       ).map(item => (
-                        <button key={item.name} onClick={() => addItem(item)}
+                        <button key={item._id} onClick={() => addItem(item)}
                           style={{
                             padding: '12px', backgroundColor: 'white', border: '1px solid #ddd',
                             borderRadius: '8px', cursor: 'pointer', textAlign: 'left'
@@ -808,8 +818,8 @@ function Counter() {
                           <div style={{ color: '#e65c00', fontSize: '13px' }}>{item.variable ? 'Add Price' : `₹${item.price}`}</div>
                         </button>
                       ))
-                    : menu.find(cat => cat.category === selectedCategory)?.items.map(item => (
-                        <button key={item.name} onClick={() => addItem(item)}
+                    : flatMenuItems.filter(item => item.category === selectedCategory).map(item => (
+                        <button key={item._id} onClick={() => addItem(item)}
                           style={{
                             padding: '12px', backgroundColor: 'white', border: '1px solid #ddd',
                             borderRadius: '8px', cursor: 'pointer', textAlign: 'left'

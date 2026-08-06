@@ -185,6 +185,12 @@ function Waiter() {
     }
   }
 
+  // Flatten menu into individual items each carrying their own category, so
+  // the item grid filters per-item by a strict, case-sensitive
+  // category === selectedCategory match instead of trusting a pre-grouped
+  // category bucket from the server.
+  const flatMenuItems = menu.flatMap(cat => cat.items.map(item => ({ ...item, category: cat.category })))
+
   return (
     <div style={{ fontFamily: 'sans-serif', maxWidth: '480px', margin: '0 auto', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
 
@@ -327,7 +333,11 @@ function Waiter() {
           {!searchQuery && (
             <div style={{ display: 'flex', overflowX: 'auto', padding: '12px 16px', gap: '8px', backgroundColor: 'white' }}>
               {menu.map(cat => (
-                <button key={cat.category} onClick={() => setSelectedCategory(cat.category)}
+                <button key={cat.category} onClick={() => {
+                  setSelectedCategory(cat.category)
+                  const preview = flatMenuItems.filter(item => item.category === cat.category).slice(0, 3)
+                  console.log('[Category Filter]', 'selectedCategory =', cat.category, preview.map(item => ({ name: item.name, category: item.category })))
+                }}
                   style={{
                     padding: '8px 16px', borderRadius: '20px', border: 'none',
                     cursor: 'pointer', whiteSpace: 'nowrap',
@@ -342,10 +352,10 @@ function Waiter() {
 
           <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', paddingBottom: '80px' }}>
             {searchQuery
-              ? menu.flatMap(cat => cat.items).filter(item =>
+              ? flatMenuItems.filter(item =>
                   item.name.toLowerCase().includes(searchQuery.toLowerCase())
                 ).map(item => (
-                  <button key={item.name} onClick={() => addItem(item)}
+                  <button key={item._id} onClick={() => addItem(item)}
                     style={{
                       padding: '14px', backgroundColor: 'white', border: '1px solid #ddd',
                       borderRadius: '8px', cursor: 'pointer', textAlign: 'left'
@@ -356,8 +366,8 @@ function Waiter() {
                     </div>
                   </button>
                 ))
-              : menu.find(cat => cat.category === selectedCategory)?.items.map(item => (
-                  <button key={item.name} onClick={() => addItem(item)}
+              : flatMenuItems.filter(item => item.category === selectedCategory).map(item => (
+                  <button key={item._id} onClick={() => addItem(item)}
                     style={{
                       padding: '14px', backgroundColor: 'white', border: '1px solid #ddd',
                       borderRadius: '8px', cursor: 'pointer', textAlign: 'left'

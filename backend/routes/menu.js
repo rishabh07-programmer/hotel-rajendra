@@ -62,6 +62,9 @@ const categoryRank = (category) => {
 // Get full menu (public - no auth needed so waiter can fetch)
 router.get('/', async (req, res) => {
   try {
+    // Rule out stale cached responses (browser/proxy) as a source of items
+    // appearing to be in the wrong category on the client.
+    res.set('Cache-Control', 'no-store')
     let items = await MenuItem.find()
     if (items.length === 0) {
       await MenuItem.insertMany(defaultMenu)
