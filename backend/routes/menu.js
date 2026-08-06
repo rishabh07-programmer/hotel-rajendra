@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const MenuItem = require('../models/MenuItem')
+const Order = require('../models/Order')
 const jwt = require('jsonwebtoken')
 
 const defaultMenu = [
@@ -66,6 +67,16 @@ router.get('/', async (req, res) => {
       await MenuItem.insertMany(defaultMenu)
       items = await MenuItem.find()
     }
+
+    // Total quantity sold per item name, from completed sales (same criteria as analytics top-items)
+    const soldOrders = await Order.find({ status: 'billed', isVoided: { $ne: true } }, 'items')
+    const qtySoldByName = {}
+    soldOrders.forEach(order => {
+      order.items.forEach(item => {
+        qtySoldByName[item.name] = (qtySoldByName[item.name] || 0) + item.qty
+      })
+    })
+
     // Group by category
     const categories = []
     items.forEach(item => {
@@ -77,9 +88,14 @@ router.get('/', async (req, res) => {
         categories.push({ category: item.category, items: [entry] })
       }
     })
-    // Sort items within each category by sortOrder ascending
+    // Within each category: pinned items (sortOrder < 99) stay first, in ascending sortOrder
+    // order, unchanged. Everything else (sortOrder 99) is sorted by total quantity sold
+    // descending, so best sellers float to the top of the unpinned items.
     categories.forEach(cat => {
-      cat.items.sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99))
+      const pinned = cat.items.filter(i => (i.sortOrder ?? 99) < 99).sort((a, b) => a.sortOrder - b.sortOrder)
+      const bestSelling = cat.items.filter(i => (i.sortOrder ?? 99) >= 99)
+        .sort((a, b) => (qtySoldByName[b.name] || 0) - (qtySoldByName[a.name] || 0))
+      cat.items = [...pinned, ...bestSelling]
     })
     // Sort categories: Main Menu, South Indian, Hot Drinks, Cold Drinks, Sweet & Farsan, then the rest
     categories.sort((a, b) => categoryRank(a.category) - categoryRank(b.category))
