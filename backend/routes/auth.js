@@ -63,7 +63,7 @@ router.post('/login', async (req, res) => {
 // Get all waiters (owner only)
 router.get('/waiters', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
     const waiters = await User.find({ role: 'waiter' }, '-password')
     res.json(waiters)
   } catch (err) {
@@ -74,7 +74,7 @@ router.get('/waiters', verifyToken, async (req, res) => {
 // Create new waiter (owner only)
 router.post('/waiter/create', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
     const { name, userId, password } = req.body
 
     const existing = await User.findOne({ userId })
@@ -93,7 +93,7 @@ router.post('/waiter/create', verifyToken, async (req, res) => {
 // Update waiter (owner only)
 router.post('/waiter/update/:id', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
     const { name, status } = req.body
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -109,7 +109,7 @@ router.post('/waiter/update/:id', verifyToken, async (req, res) => {
 // Delete waiter (owner only)
 router.post('/waiter/delete/:id', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
     await User.findByIdAndDelete(req.params.id)
     res.json({ message: 'Waiter deleted' })
   } catch (err) {
@@ -120,7 +120,7 @@ router.post('/waiter/delete/:id', verifyToken, async (req, res) => {
 // Force logout a waiter's device (owner only)
 router.post('/waiter/force-logout/:id', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { deviceId: null, deviceName: null },

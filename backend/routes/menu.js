@@ -64,14 +64,16 @@ router.get('/', async (req, res) => {
     const categories = []
     items.forEach(item => {
       const existing = categories.find(c => c.category === item.category)
+      const entry = { _id: item._id, name: item.name, price: item.price, variable: item.variable, sortOrder: item.sortOrder }
       if (existing) {
-        existing.items.push({ _id: item._id, name: item.name, price: item.price, variable: item.variable })
+        existing.items.push(entry)
       } else {
-        categories.push({
-          category: item.category,
-          items: [{ _id: item._id, name: item.name, price: item.price, variable: item.variable }]
-        })
+        categories.push({ category: item.category, items: [entry] })
       }
+    })
+    // Sort items within each category by sortOrder ascending
+    categories.forEach(cat => {
+      cat.items.sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99))
     })
     res.json(categories)
   } catch (err) {
@@ -82,7 +84,7 @@ router.get('/', async (req, res) => {
 // Update a single item price (owner only)
 router.post('/update/:id', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
     const { price, variable } = req.body
     const item = await MenuItem.findByIdAndUpdate(
       req.params.id,
@@ -98,7 +100,7 @@ router.post('/update/:id', verifyToken, async (req, res) => {
 // Add new item (owner only)
 router.post('/add', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
     const { category, name, price, variable } = req.body
     const item = new MenuItem({ category, name, price, variable })
     await item.save()
@@ -111,7 +113,7 @@ router.post('/add', verifyToken, async (req, res) => {
 // Delete item (owner only)
 router.post('/delete/:id', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
     await MenuItem.findByIdAndDelete(req.params.id)
     res.json({ message: 'Item deleted' })
   } catch (err) {

@@ -18,7 +18,7 @@ const verifyToken = (req, res, next) => {
 // Today's sales
 router.get('/today', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -43,7 +43,7 @@ router.get('/today', verifyToken, async (req, res) => {
 // Monthly sales
 router.get('/monthly/:year/:month', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
 
     const { year, month } = req.params
     const startDate = new Date(year, month - 1, 1)
@@ -67,7 +67,7 @@ router.get('/monthly/:year/:month', verifyToken, async (req, res) => {
 // Yearly sales
 router.get('/yearly/:year', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
 
     const { year } = req.params
     const startDate = new Date(year, 0, 1)
@@ -97,7 +97,7 @@ router.get('/yearly/:year', verifyToken, async (req, res) => {
 // Top items (all time or by date range)
 router.get('/top-items', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'owner') return res.status(403).json({ message: 'Not allowed' })
+    if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
 
     const orders = await Order.find({ status: 'billed', isVoided: { $ne: true } })
 
