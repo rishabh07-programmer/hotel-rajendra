@@ -10,6 +10,11 @@ function Counter() {
   const [activeTab, setActiveTab] = useState('orders')
   const [activeOrders, setActiveOrders] = useState([])
   const [selectedOrder, setSelectedOrder] = useState(null)
+  // Items added in the current session for the selected order. Always starts
+  // empty when a table is opened — selectedOrder.items holds only what's
+  // already saved on the backend, so only newItems is ever POSTed to
+  // /addItems to avoid re-submitting (and doubling) already-saved items.
+  const [newItems, setNewItems] = useState([])
   const [showMenu, setShowMenu] = useState(false)
   const [menu, setMenu] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -197,6 +202,7 @@ function Counter() {
     try {
       const res = await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/unbill/${order._id}`, {}, { headers: { authorization: token } })
       setSelectedOrder(res.data.order)
+      setNewItems([])
       setDiscount(0)
       setShowMenu(false)
       setActiveTab('orders')
@@ -276,19 +282,15 @@ function Counter() {
   const confirmQty = () => {
     if (!qtyItem || qtyCount <= 0) return
     if (selectedOrder) {
-      const existingIndex = selectedOrder.items.findIndex(i => i.name === qtyItem.name && i.price === qtyItem.price)
-      if (existingIndex >= 0) {
-        const updatedItems = [...selectedOrder.items]
-        updatedItems[existingIndex].qty += qtyCount
-        const newTotal = updatedItems.reduce((sum, i) => sum + (i.price * i.qty), 0)
-        setSelectedOrder({ ...selectedOrder, items: updatedItems, totalAmount: newTotal })
-      } else {
-        setSelectedOrder({
-          ...selectedOrder,
-          items: [...selectedOrder.items, { name: qtyItem.name, price: qtyItem.price, qty: qtyCount }],
-          totalAmount: selectedOrder.totalAmount + (qtyItem.price * qtyCount)
-        })
-      }
+      setNewItems(prev => {
+        const existingIndex = prev.findIndex(i => i.name === qtyItem.name && i.price === qtyItem.price)
+        if (existingIndex >= 0) {
+          const updated = [...prev]
+          updated[existingIndex] = { ...updated[existingIndex], qty: updated[existingIndex].qty + qtyCount }
+          return updated
+        }
+        return [...prev, { name: qtyItem.name, price: qtyItem.price, qty: qtyCount }]
+      })
     }
     setQtyItem(null)
     setQtyCount(1)
@@ -297,39 +299,35 @@ function Counter() {
   const addVariableItem = () => {
     if (!variablePrice || variablePrice <= 0) return
     if (selectedOrder) {
-      const existingIndex = selectedOrder.items.findIndex(i => i.name === variableItem.name)
-      if (existingIndex >= 0) {
-        const updatedItems = [...selectedOrder.items]
-        updatedItems[existingIndex].qty += 1
-        const newTotal = updatedItems.reduce((sum, i) => sum + (i.price * i.qty), 0)
-        setSelectedOrder({ ...selectedOrder, items: updatedItems, totalAmount: newTotal })
-      } else {
-        setSelectedOrder({
-          ...selectedOrder,
-          items: [...selectedOrder.items, { name: variableItem.name, price: parseInt(variablePrice), qty: 1 }],
-          totalAmount: selectedOrder.totalAmount + parseInt(variablePrice)
-        })
-      }
+      setNewItems(prev => {
+        const existingIndex = prev.findIndex(i => i.name === variableItem.name)
+        if (existingIndex >= 0) {
+          const updated = [...prev]
+          updated[existingIndex] = { ...updated[existingIndex], qty: updated[existingIndex].qty + 1 }
+          return updated
+        }
+        return [...prev, { name: variableItem.name, price: parseInt(variablePrice), qty: 1 }]
+      })
     }
     setVariableItem(null)
     setVariablePrice('')
   }
 
   const removeItem = (index) => {
-    const updatedItems = selectedOrder.items.filter((_, i) => i !== index)
-    const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.qty), 0)
-    setSelectedOrder({ ...selectedOrder, items: updatedItems, totalAmount: newTotal })
+    setNewItems(newItems.filter((_, i) => i !== index))
   }
 
+  const newItemsTotal = newItems.reduce((sum, item) => sum + (item.price * item.qty), 0)
+
   const sendToKitchen = async () => {
-    if (selectedOrder.items.length === 0) return
+    if (newItems.length === 0) return
     setConfirmingOrder(true)
     setOrderError('')
 
     const attempt = async () => {
       if (selectedOrder._id) {
         await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/addItems/${selectedOrder._id}`,
-          { items: selectedOrder.items },
+          { items: newItems },
           { headers: { authorization: token } }
         )
         const res = await axios.get('https://shark-app-2tu4l.ondigitalocean.app/api/orders/active', { headers: { authorization: token } })
@@ -337,7 +335,7 @@ function Counter() {
         if (refreshed) setSelectedOrder(refreshed)
       } else {
         const res = await axios.post('https://shark-app-2tu4l.ondigitalocean.app/api/orders/new',
-          { tableNumber: selectedOrder.tableNumber, items: selectedOrder.items },
+          { tableNumber: selectedOrder.tableNumber, items: newItems },
           { headers: { authorization: token } }
         )
         setSelectedOrder(res.data.order)
@@ -347,6 +345,7 @@ function Counter() {
     for (let i = 0; i <= 2; i++) {
       try {
         await attempt()
+        setNewItems([])
         setShowMenu(false)
         fetchActiveOrders()
         setConfirmingOrder(false)
@@ -369,19 +368,22 @@ function Counter() {
     setBillError('')
     try {
       if (selectedOrder._id) {
-        await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/addItems/${selectedOrder._id}`,
-          { items: selectedOrder.items },
-          { headers: { authorization: token } }
-        )
+        if (newItems.length > 0) {
+          await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/addItems/${selectedOrder._id}`,
+            { items: newItems },
+            { headers: { authorization: token } }
+          )
+        }
         await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/bill/${selectedOrder._id}`, {}, { headers: { authorization: token } })
       } else {
         const res = await axios.post('https://shark-app-2tu4l.ondigitalocean.app/api/orders/new',
-          { tableNumber: selectedOrder.tableNumber, items: selectedOrder.items },
+          { tableNumber: selectedOrder.tableNumber, items: newItems },
           { headers: { authorization: token } }
         )
         await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/bill/${res.data.order._id}`, {}, { headers: { authorization: token } })
       }
       setSelectedOrder(null)
+      setNewItems([])
       setDiscount(0)
       fetchActiveOrders()
       fetchTodaySales().catch(e => console.error('[BG] fetchTodaySales:', e?.message))
@@ -399,17 +401,26 @@ function Counter() {
   }
 
   const cancelOrder = async () => {
-    if (!selectedOrder._id) { setSelectedOrder(null); return }
+    if (!selectedOrder._id) { setSelectedOrder(null); setNewItems([]); return }
     try {
       await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/cancel/${selectedOrder._id}`, {}, { headers: { authorization: token } })
       setSelectedOrder(null)
+      setNewItems([])
       setDiscount(0)
       fetchActiveOrders()
     } catch (err) { console.log(err) }
   }
 
-  const printBill = (order = selectedOrder, billDiscount = discount) => {
-    const finalTotal = order.totalAmount - billDiscount
+  // When called with no `order` (Print & Close, before the new items are
+  // saved), print the pending view: already-saved items plus this session's
+  // unsent newItems. reprintBill passes an already-saved order explicitly.
+  const printBill = (order, billDiscount = discount) => {
+    const printOrder = order || {
+      ...selectedOrder,
+      items: [...selectedOrder.items, ...newItems],
+      totalAmount: selectedOrder.totalAmount + newItemsTotal
+    }
+    const finalTotal = printOrder.totalAmount - billDiscount
 
     // ESC/POS control sequences. ESC is byte 27; 'a'/'E' are the literal
     // command-letter bytes (97/69), not passed through fromCharCode, so the
@@ -452,12 +463,12 @@ function Counter() {
 
     // Order info / items / totals / thank-you — identical text in both versions
     let body = ''
-    body += `Table: ${order.tableNumber}\n`
+    body += `Table: ${printOrder.tableNumber}\n`
     body += `Date: ${new Date().toLocaleDateString('en-IN')}  Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}\n`
     body += divider() + '\n'
-    order.items.forEach(item => { body += itemLine(item) })
+    printOrder.items.forEach(item => { body += itemLine(item) })
     body += divider() + '\n'
-    body += row('Subtotal', `Rs.${order.totalAmount}`) + '\n'
+    body += row('Subtotal', `Rs.${printOrder.totalAmount}`) + '\n'
     if (billDiscount > 0) body += row('Discount', `-Rs.${billDiscount}`) + '\n'
     body += row('TOTAL', `Rs.${finalTotal}`) + '\n'
     body += divider() + '\n'
@@ -505,6 +516,7 @@ function Counter() {
     const existing = activeOrders.find(o => o.tableNumber == num)
     if (existing) { setSelectedOrder(existing); setShowMenu(false); setDiscount(0); setOrderError(''); setBillError('') }
     else { setSelectedOrder({ tableNumber: num, items: [], totalAmount: 0 }); setShowMenu(true) }
+    setNewItems([])
     setShowNewOrder(false)
     setSelectedCategory(menu.length > 0 ? menu[0].category : '')
   }
@@ -630,7 +642,7 @@ function Counter() {
             <h3 style={{ marginBottom: '8px' }}>Active Tables</h3>
             {activeOrders.length === 0 && <p style={{ color: '#999' }}>No active orders</p>}
             {activeOrders.map(order => (
-              <div key={order._id} onClick={() => { setSelectedOrder(order); setShowMenu(false); setDiscount(0); setOrderError(''); setBillError('') }}
+              <div key={order._id} onClick={() => { setSelectedOrder(order); setNewItems([]); setShowMenu(false); setDiscount(0); setOrderError(''); setBillError('') }}
                 style={{
                   backgroundColor: selectedOrder?._id === order._id ? '#e65c00' : 'white',
                   color: selectedOrder?._id === order._id ? 'white' : 'black',
@@ -656,32 +668,57 @@ function Counter() {
                   padding: '8px 16px', backgroundColor: '#333', color: 'white',
                   border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '16px'
                 }}>+ Add More Items</button>
-                {selectedOrder.items.length === 0 && <p style={{ color: '#999' }}>No items added yet</p>}
-                {selectedOrder.items.map((item, index) => (
-                  <div key={index} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '8px', marginBottom: '8px'
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                      <div style={{ fontSize: '12px', color: '#666' }}>
-                        x{item.qty} × ₹{item.price}
-                        <span onClick={() => { setEditingOrderItem(index); setEditOrderPrice(item.price.toString()) }}
-                          style={{ color: '#e65c00', marginLeft: '8px', cursor: 'pointer', textDecoration: 'underline', fontSize: '12px' }}>
-                          Change Price
-                        </span>
+                {selectedOrder.items.length === 0 && newItems.length === 0 && <p style={{ color: '#999' }}>No items added yet</p>}
+
+                {selectedOrder.items.length > 0 && (
+                  <>
+                    <p style={{ fontWeight: 'bold', color: '#666', fontSize: '13px', margin: '4px 0' }}>Already Ordered</p>
+                    {selectedOrder.items.map((item, index) => (
+                      <div key={`saved-${index}`} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '8px', marginBottom: '8px'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 'bold' }}>{item.name}</div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>x{item.qty} × ₹{item.price}</div>
+                        </div>
+                        <span style={{ fontWeight: 'bold' }}>₹{item.price * item.qty}</span>
                       </div>
-                    </div>
-                    <span style={{ fontWeight: 'bold', marginRight: '12px' }}>₹{item.price * item.qty}</span>
-                    <button onClick={() => removeItem(index)} style={{
-                      backgroundColor: '#ff4444', color: 'white', border: 'none',
-                      borderRadius: '4px', padding: '4px 8px', cursor: 'pointer'
-                    }}>X</button>
-                  </div>
-                ))}
+                    ))}
+                  </>
+                )}
+
+                {newItems.length > 0 && (
+                  <>
+                    <p style={{ fontWeight: 'bold', color: '#666', fontSize: '13px', margin: '12px 0 4px' }}>New Items (not yet sent)</p>
+                    {newItems.map((item, index) => (
+                      <div key={`new-${index}`} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '8px', backgroundColor: '#fff8f0', borderRadius: '8px', marginBottom: '8px'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 'bold' }}>{item.name}</div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            x{item.qty} × ₹{item.price}
+                            <span onClick={() => { setEditingOrderItem(index); setEditOrderPrice(item.price.toString()) }}
+                              style={{ color: '#e65c00', marginLeft: '8px', cursor: 'pointer', textDecoration: 'underline', fontSize: '12px' }}>
+                              Change Price
+                            </span>
+                          </div>
+                        </div>
+                        <span style={{ fontWeight: 'bold', marginRight: '12px' }}>₹{item.price * item.qty}</span>
+                        <button onClick={() => removeItem(index)} style={{
+                          backgroundColor: '#ff4444', color: 'white', border: 'none',
+                          borderRadius: '4px', padding: '4px 8px', cursor: 'pointer'
+                        }}>X</button>
+                      </div>
+                    ))}
+                  </>
+                )}
+
                 <div style={{ marginTop: '16px', padding: '16px', backgroundColor: '#f0f0f0', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span>Subtotal</span><span>₹{selectedOrder.totalAmount}</span>
+                    <span>Subtotal</span><span>₹{selectedOrder.totalAmount + newItemsTotal}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span>Discount (₹)</span>
@@ -689,10 +726,10 @@ function Counter() {
                       style={{ width: '80px', padding: '4px', borderRadius: '4px', border: '1px solid #ddd', textAlign: 'right' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px' }}>
-                    <span>Total</span><span>₹{selectedOrder.totalAmount - discount}</span>
+                    <span>Total</span><span>₹{selectedOrder.totalAmount + newItemsTotal - discount}</span>
                   </div>
                 </div>
-                <button onClick={sendToKitchen} disabled={confirmingOrder || savingBill} style={{
+                <button onClick={sendToKitchen} disabled={confirmingOrder || savingBill || newItems.length === 0} style={{
                   width: '100%', padding: '16px', border: 'none', borderRadius: '8px',
                   fontSize: '18px', marginTop: '16px', marginBottom: '4px',
                   backgroundColor: confirmingOrder ? '#aaa' : '#e65c00',
@@ -783,7 +820,7 @@ function Counter() {
                       ))
                   }
                 </div>
-                {selectedOrder.items.length > 0 && (
+                {(selectedOrder.items.length + newItems.length) > 0 && (
                   <div onClick={() => { setShowMenu(false); setMenuSearchQuery('') }} style={{
                     position: 'fixed', bottom: '24px', left: '60%', transform: 'translateX(-50%)',
                     backgroundColor: '#e65c00', color: 'white', padding: '14px 28px',
@@ -791,7 +828,7 @@ function Counter() {
                     cursor: 'pointer', whiteSpace: 'nowrap', zIndex: 99,
                     boxShadow: '0 4px 12px rgba(230,92,0,0.4)'
                   }}>
-                    View Order ({selectedOrder.items.length} items) · ₹{selectedOrder.totalAmount}
+                    View Order ({selectedOrder.items.length + newItems.length} items) · ₹{selectedOrder.totalAmount + newItemsTotal}
                   </div>
                 )}
               </div>
@@ -1321,16 +1358,15 @@ function Counter() {
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', width: '280px' }}>
             <h3 style={{ marginBottom: '4px' }}>Change Price</h3>
             <p style={{ color: '#999', marginBottom: '16px' }}>
-              {selectedOrder.items[editingOrderItem]?.name}
+              {newItems[editingOrderItem]?.name}
             </p>
             <input type='number' placeholder='Enter new price'
               value={editOrderPrice} onChange={(e) => setEditOrderPrice(e.target.value)}
               style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px', boxSizing: 'border-box', marginBottom: '12px' }} />
             <button onClick={() => {
-              const updated = [...selectedOrder.items]
-              updated[editingOrderItem].price = parseInt(editOrderPrice)
-              const newTotal = updated.reduce((sum, i) => sum + (i.price * i.qty), 0)
-              setSelectedOrder({ ...selectedOrder, items: updated, totalAmount: newTotal })
+              const updated = [...newItems]
+              updated[editingOrderItem] = { ...updated[editingOrderItem], price: parseInt(editOrderPrice) }
+              setNewItems(updated)
               setEditingOrderItem(null)
               setEditOrderPrice('')
             }} style={{
