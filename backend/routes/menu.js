@@ -52,6 +52,12 @@ const verifyToken = (req, res, next) => {
   }
 }
 
+const CATEGORY_ORDER = ['Main Menu', 'South Indian', 'Hot Drinks', 'Cold Drinks', 'Sweet & Farsan']
+const categoryRank = (category) => {
+  const idx = CATEGORY_ORDER.indexOf(category)
+  return idx === -1 ? CATEGORY_ORDER.length : idx
+}
+
 // Get full menu (public - no auth needed so waiter can fetch)
 router.get('/', async (req, res) => {
   try {
@@ -75,6 +81,8 @@ router.get('/', async (req, res) => {
     categories.forEach(cat => {
       cat.items.sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99))
     })
+    // Sort categories: Main Menu, South Indian, Hot Drinks, Cold Drinks, Sweet & Farsan, then the rest
+    categories.sort((a, b) => categoryRank(a.category) - categoryRank(b.category))
     res.json(categories)
   } catch (err) {
     res.status(500).json({ message: 'Server error' })
