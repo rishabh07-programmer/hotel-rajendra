@@ -185,6 +185,48 @@ function Waiter() {
     }
   }
 
+  const closeTable = async () => {
+    if (!existingOrder) return
+    if (!window.confirm('Close table without billing?')) return
+    try {
+      await axios.post(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/bill/${existingOrder._id}`,
+        {},
+        { headers: { authorization: token } }
+      )
+      setExistingOrder(null)
+      setOrderItems([])
+      setStep('table')
+    } catch (err) {
+      console.log(err)
+      alert('Failed to close table: ' + (err.response?.data?.message || 'Server error'))
+    }
+  }
+
+  const updateExistingItems = async (updatedItems) => {
+    if (!existingOrder) return
+    try {
+      const res = await axios.patch(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/${existingOrder._id}/items`,
+        { items: updatedItems },
+        { headers: { authorization: token } }
+      )
+      setExistingOrder(res.data.order)
+    } catch (err) {
+      console.log(err)
+      alert('Failed to update item')
+    }
+  }
+
+  const changeExistingItemQty = (index, delta) => {
+    const updated = existingOrder.items
+      .map((item, i) => i === index ? { ...item, qty: item.qty + delta } : item)
+      .filter(item => item.qty > 0)
+    updateExistingItems(updated)
+  }
+
+  const removeExistingItem = (index) => {
+    updateExistingItems(existingOrder.items.filter((_, i) => i !== index))
+  }
+
   // Flatten menu into individual items each carrying their own category, so
   // the item grid filters per-item by a strict, case-sensitive
   // category === selectedCategory match instead of trusting a pre-grouped
@@ -267,9 +309,27 @@ function Waiter() {
           <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
             <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Current Order:</p>
             {existingOrder?.items.map((item, index) => (
-              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <span>{item.name} x{item.qty}</span>
-                <span>₹{item.price * item.qty}</span>
+              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: 1 }}>
+                  <div>{item.name}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>₹{item.price} each</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button onClick={() => changeExistingItemQty(index, -1)} style={{
+                    width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #ddd',
+                    backgroundColor: '#f5f5f5', cursor: 'pointer', fontSize: '16px'
+                  }}>-</button>
+                  <span style={{ minWidth: '20px', textAlign: 'center', fontWeight: 'bold' }}>{item.qty}</span>
+                  <button onClick={() => changeExistingItemQty(index, 1)} style={{
+                    width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #ddd',
+                    backgroundColor: '#f5f5f5', cursor: 'pointer', fontSize: '16px'
+                  }}>+</button>
+                  <span style={{ fontWeight: 'bold', minWidth: '56px', textAlign: 'right' }}>₹{item.price * item.qty}</span>
+                  <button onClick={() => removeExistingItem(index)} style={{
+                    backgroundColor: '#ff4444', color: 'white', border: 'none',
+                    borderRadius: '4px', padding: '4px 8px', cursor: 'pointer'
+                  }}>x</button>
+                </div>
               </div>
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '8px' }}>
@@ -292,6 +352,14 @@ function Waiter() {
             fontSize: '16px', cursor: 'pointer', marginBottom: '12px'
           }}>
             ← Back to Tables
+          </button>
+
+          <button onClick={closeTable} style={{
+            width: '100%', padding: '16px', backgroundColor: '#607d8b',
+            color: 'white', border: 'none', borderRadius: '8px',
+            fontSize: '16px', cursor: 'pointer', marginBottom: '12px'
+          }}>
+            Close Table
           </button>
 
           <button onClick={cancelOrder} style={{

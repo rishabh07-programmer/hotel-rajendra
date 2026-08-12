@@ -317,6 +317,31 @@ function Counter() {
     setNewItems(newItems.filter((_, i) => i !== index))
   }
 
+  const updateSavedItems = async (updatedItems) => {
+    if (!selectedOrder?._id) return
+    try {
+      const res = await axios.patch(`https://shark-app-2tu4l.ondigitalocean.app/api/orders/${selectedOrder._id}/items`,
+        { items: updatedItems },
+        { headers: { authorization: token } }
+      )
+      setSelectedOrder(res.data.order)
+      fetchActiveOrders()
+    } catch (err) {
+      alert('Failed to update item')
+    }
+  }
+
+  const changeSavedItemQty = (index, delta) => {
+    const updated = selectedOrder.items
+      .map((item, i) => i === index ? { ...item, qty: item.qty + delta } : item)
+      .filter(item => item.qty > 0)
+    updateSavedItems(updated)
+  }
+
+  const removeSavedItem = (index) => {
+    updateSavedItems(selectedOrder.items.filter((_, i) => i !== index))
+  }
+
   const newItemsTotal = newItems.reduce((sum, item) => sum + (item.price * item.qty), 0)
 
   const sendToKitchen = async () => {
@@ -686,9 +711,24 @@ function Counter() {
                       }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                          <div style={{ fontSize: '12px', color: '#666' }}>x{item.qty} × ₹{item.price}</div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>₹{item.price} each</div>
                         </div>
-                        <span style={{ fontWeight: 'bold' }}>₹{item.price * item.qty}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button onClick={() => changeSavedItemQty(index, -1)} style={{
+                            width: '26px', height: '26px', borderRadius: '50%', border: '1px solid #ddd',
+                            backgroundColor: 'white', cursor: 'pointer', fontSize: '15px'
+                          }}>-</button>
+                          <span style={{ minWidth: '18px', textAlign: 'center', fontWeight: 'bold' }}>{item.qty}</span>
+                          <button onClick={() => changeSavedItemQty(index, 1)} style={{
+                            width: '26px', height: '26px', borderRadius: '50%', border: '1px solid #ddd',
+                            backgroundColor: 'white', cursor: 'pointer', fontSize: '15px'
+                          }}>+</button>
+                          <span style={{ fontWeight: 'bold', minWidth: '56px', textAlign: 'right' }}>₹{item.price * item.qty}</span>
+                          <button onClick={() => removeSavedItem(index)} style={{
+                            backgroundColor: '#ff4444', color: 'white', border: 'none',
+                            borderRadius: '4px', padding: '4px 8px', cursor: 'pointer'
+                          }}>x</button>
+                        </div>
                       </div>
                     ))}
                   </>

@@ -100,6 +100,22 @@ router.post('/addItems/:id', verifyToken, async (req, res) => {
   }
 })
 
+router.patch('/:id/items', verifyToken, async (req, res) => {
+  try {
+    const { items } = req.body
+    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.qty), 0)
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { items, totalAmount },
+      { new: true }
+    )
+    if (!order) return res.status(404).json({ message: 'Order not found' })
+    res.json({ message: 'Items updated', order })
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
 router.post('/status/:id', verifyToken, async (req, res) => {
   try {
     const { status } = req.body

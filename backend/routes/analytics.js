@@ -94,12 +94,31 @@ router.get('/yearly/:year', verifyToken, async (req, res) => {
   }
 })
 
-// Top items (all time or by date range)
+// Top items — scoped to today by default, or to the given month/year
 router.get('/top-items', verifyToken, async (req, res) => {
   try {
     if (!['owner', 'developer'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed' })
 
-    const orders = await Order.find({ status: 'billed', isVoided: { $ne: true } })
+    const { month, year } = req.query
+    let startDate, endDate
+    if (year && month) {
+      startDate = new Date(year, month - 1, 1)
+      endDate = new Date(year, month, 1)
+    } else if (year) {
+      startDate = new Date(year, 0, 1)
+      endDate = new Date(year, 12, 1)
+    } else {
+      startDate = new Date()
+      startDate.setHours(0, 0, 0, 0)
+      endDate = new Date(startDate)
+      endDate.setDate(endDate.getDate() + 1)
+    }
+
+    const orders = await Order.find({
+      status: 'billed',
+      isVoided: { $ne: true },
+      billedAt: { $gte: startDate, $lt: endDate }
+    })
 
     const itemSales = {}
     orders.forEach(order => {
